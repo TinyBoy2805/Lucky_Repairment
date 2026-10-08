@@ -1,0 +1,193 @@
+@use 'variables' as *;
+
+.form {
+  display: grid;
+  gap: 18px;
+  text-align: left;
+
+  &__meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-size: 14px;
+  }
+
+  &__check {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: $text-muted;
+    cursor: pointer;
+    user-select: none;
+
+    input {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      accent-color: $brand;
+      cursor: pointer;
+    }
+
+    &--error {
+      color: $danger;
+    }
+  }
+
+  &__link {
+    color: $brand;
+    font-weight: 600;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  &__hint {
+    font-size: 14px;
+    line-height: 1.6;
+    color: $text-muted;
+  }
+}
+
+// ===== Chọn vai trò (trang đăng ký) =====
+.role-picker {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+
+  &__option {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 11px 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: $text-muted;
+    background: $white;
+    border: 1px solid $border;
+    border-radius: $radius;
+    cursor: pointer;
+    user-select: none;
+    transition:
+      color $transition,
+      border-color $transition,
+      background $transition;
+
+    &:hover {
+      border-color: #cbd5e1;
+    }
+
+    input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    &.is-active {
+      color: $brand;
+      background: $brand-soft;
+      border-color: $brand;
+    }
+  }
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  text-align: left;
+
+  > label {
+    font-size: 14px;
+    font-weight: 600;
+    color: $text;
+  }
+
+  &__control {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  input,
+  textarea {
+    width: 100%;
+    padding: 12px 14px;
+    font-family: inherit;
+    font-size: 15px;
+    color: $text;
+    background: $white;
+    border: 1px solid $border;
+    border-radius: $radius;
+    outline: none;
+    transition:
+      border-color $transition,
+      box-shadow $transition;
+
+    &::placeholder {
+      color: $text-light;
+    }
+
+    &:focus {
+      border-color: $brand;
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+    }
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 92px;
+    line-height: 1.5;
+  }
+
+  // input có nút bấm bên phải (show/hide password)
+  &--action {
+    input {
+      padding-right: 48px;
+    }
+  }
+
+  &__action {
+    position: absolute;
+    right: 6px;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: $radius-sm;
+    color: $text-muted;
+    cursor: pointer;
+
+    &:hover {
+      background: $gray-100;
+      color: $text;
+    }
+
+    svg {
+      width: 18px;
+      height: 18px;
+    }
+  }
+
+  &--error {
+    input,
+    textarea {
+      border-color: $danger;
+
+      &:focus {
+        box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.14);
+      }
+    }
+  }
+
+  &__error {
+    font-size: 13px;
+    color: $danger;
+  }
+}

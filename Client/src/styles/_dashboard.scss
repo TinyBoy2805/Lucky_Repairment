@@ -1,0 +1,156 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.dashboard {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: $bg;
+
+  &__topbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    height: 64px;
+    padding: 0 24px;
+    background: $white;
+    border-bottom: 1px solid $border;
+
+    @include respond(sm) {
+      gap: 10px;
+      padding: 0 16px;
+    }
+  }
+
+  &__spacer {
+    flex: 1;
+  }
+
+  &__role {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: $brand;
+    background: $brand-soft;
+    border-radius: 999px;
+
+    &::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    @include respond(md) {
+      display: none;
+    }
+  }
+
+  &__user {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.25;
+    text-align: right;
+
+    strong {
+      font-size: 14px;
+      font-weight: 600;
+      color: $text;
+    }
+
+    span {
+      font-size: 12px;
+      color: $text-muted;
+    }
+
+    @include respond(sm) {
+      display: none;
+    }
+  }
+
+  &__avatar {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    color: #fff;
+    background: $navy;
+
+    svg {
+      width: 18px;
+      height: 18px;
+    }
+  }
+
+  &__content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 24px;
+  }
+}
+
+// ===== Trang placeholder (đang xây dựng) =====
+.placeholder {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 540px;
+  text-align: center;
+
+  &__icon {
+    display: grid;
+    place-items: center;
+    width: 72px;
+    height: 72px;
+    margin: 0 auto 22px;
+    border-radius: 22px;
+    color: $brand;
+    background: $brand-soft;
+
+    svg {
+      width: 32px;
+      height: 32px;
+    }
+  }
+
+  h1 {
+    margin-bottom: 10px;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.4px;
+    color: $text;
+  }
+
+  p {
+    font-size: 15px;
+    line-height: 1.65;
+    color: $text-muted;
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 28px;
+  }
+
+  @include respond(sm) {
+    h1 {
+      font-size: 22px;
+    }
+  }
+}

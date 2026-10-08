@@ -1,0 +1,231 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.auth {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  background: $white;
+
+  // ===== Bên thương hiệu (gradient) =====
+  &__brand {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 48px;
+    padding: 48px;
+    color: #fff;
+    background: $brand-gradient;
+
+    &::before,
+    &::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.07);
+    }
+
+    &::before {
+      width: 340px;
+      height: 340px;
+      top: -120px;
+      right: -100px;
+    }
+
+    &::after {
+      width: 260px;
+      height: 260px;
+      bottom: -90px;
+      left: -70px;
+    }
+  }
+
+  &__brand-body {
+    position: relative;
+    z-index: 1;
+  }
+
+  &__headline {
+    margin: 44px 0 16px;
+    font-size: 34px;
+    line-height: 1.25;
+    font-weight: 700;
+    letter-spacing: -0.6px;
+    color: #fff;
+  }
+
+  &__desc {
+    max-width: 44ch;
+    font-size: 16px;
+    line-height: 1.7;
+    color: rgba(255, 255, 255, 0.78);
+  }
+
+  &__features {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: 18px;
+    margin-top: 36px;
+
+    li {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      list-style: none;
+    }
+
+    .tick {
+      flex: none;
+      display: grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.16);
+
+      svg {
+        width: 15px;
+        height: 15px;
+      }
+    }
+
+    strong {
+      display: block;
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    span {
+      display: block;
+      margin-top: 2px;
+      font-size: 14px;
+      line-height: 1.55;
+      color: rgba(255, 255, 255, 0.62);
+    }
+  }
+
+  &__brand-footer {
+    position: relative;
+    z-index: 1;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  // ===== Bên form =====
+  &__panel {
+    display: flex;
+    padding: 48px 32px;
+    background: $white;
+  }
+
+  &__card {
+    width: 100%;
+    max-width: 428px;
+    margin: auto;
+  }
+
+  &__mobile-brand {
+    display: none;
+    margin-bottom: 36px;
+
+    @include respond(lg) {
+      display: block;
+    }
+  }
+
+  &__header {
+    margin-bottom: 28px;
+
+    h1 {
+      margin-bottom: 8px;
+      font-size: 28px;
+      line-height: 1.2;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: $text;
+    }
+
+    p {
+      font-size: 15px;
+      line-height: 1.6;
+      color: $text-muted;
+    }
+  }
+
+  &__back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 22px;
+    font-size: 14px;
+    font-weight: 500;
+    color: $text-muted;
+    text-decoration: none;
+
+    &:hover {
+      color: $brand;
+    }
+
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+  }
+
+  &__alt {
+    margin-top: 24px;
+    font-size: 15px;
+    color: $text-muted;
+
+    a {
+      font-weight: 600;
+      color: $brand;
+      text-decoration: none;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+
+  // ===== Divider "hoặc" (đăng nhập mạng xã hội) =====
+  &__divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 20px 0;
+    font-size: 13px;
+    color: $text-muted;
+
+    &::before,
+    &::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: $border;
+    }
+  }
+
+  // ===== Responsive =====
+  @include respond(lg) {
+    grid-template-columns: 1fr;
+
+    &__brand {
+      display: none;
+    }
+
+    &__panel {
+      padding: 40px 24px;
+    }
+  }
+
+  @include respond(sm) {
+    &__panel {
+      padding: 32px 20px;
+    }
+  }
+}
