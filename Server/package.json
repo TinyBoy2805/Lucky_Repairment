@@ -8,7 +8,9 @@
   },
   "scripts": {
     "dev": "node --watch src/server.js",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "init-db": "node scripts/init-db.js",
+    "smoke-test": "node scripts/smoke-test.js"
   },
   "dependencies": {
     "cors": "^2.8.6",

@@ -5,6 +5,14 @@ import { errorHandler, notFound } from './middlewares/error.middleware.js'
 import authRoutes from './routes/auth.routes.js'
 import userRoutes from './routes/user.routes.js'
 import requestRoutes from './routes/request.routes.js'
+import categoryRoutes from './routes/category.routes.js'
+import ratingRoutes from './routes/rating.routes.js'
+import walletRoutes from './routes/wallet.routes.js'
+import transactionRoutes from './routes/transaction.routes.js'
+import paymentRoutes from './routes/payment.routes.js'
+import chatRoutes from './routes/chat.routes.js'
+import scheduleRoutes from './routes/schedule.routes.js'
+import reportRoutes from './routes/report.routes.js'
 
 export function createApp() {
   const app = express()
@@ -24,6 +32,14 @@ export function createApp() {
   app.use('/api/auth', authRoutes)
   app.use('/api/users', userRoutes)
   app.use('/api/requests', requestRoutes)
+  app.use('/api/categories', categoryRoutes)
+  app.use('/api/ratings', ratingRoutes)
+  app.use('/api/wallet', walletRoutes)
+  app.use('/api/transactions', transactionRoutes)
+  app.use('/api/payments', paymentRoutes)
+  app.use('/api/chats', chatRoutes)
+  app.use('/api/schedules', scheduleRoutes)
+  app.use('/api/reports', reportRoutes)
 
   app.use(notFound)
   app.use(errorHandler)

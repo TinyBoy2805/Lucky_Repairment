@@ -14,19 +14,14 @@ function extractToken(req) {
  * Thành công → gắn req.uid / req.decoded / req.profile cho các handler sau.
  */
 export async function requireAuth(req, res, next) {
+  const token = extractToken(req)
+  if (!token) {
+    return res.status(401).json({ error: 'Thiếu access token. Vui lòng đăng nhập.' })
+  }
+
+  let decoded
   try {
-    const token = extractToken(req)
-    if (!token) {
-      return res.status(401).json({ error: 'Thiếu access token. Vui lòng đăng nhập.' })
-    }
-
-    const decoded = await auth.verifyIdToken(token)
-
-    req.uid = decoded.uid
-    req.decoded = decoded
-    req.profile = await ensureProfile(decoded)
-
-    next()
+    decoded = await auth.verifyIdToken(token)
   } catch (error) {
     const message =
       error?.code === 'auth/id-token-expired'
@@ -34,6 +29,16 @@ export async function requireAuth(req, res, next) {
         : 'Access token không hợp lệ.'
 
     return res.status(401).json({ error: message })
+  }
+
+  req.uid = decoded.uid
+  req.decoded = decoded
+
+  try {
+    req.profile = await ensureProfile(decoded)
+    next()
+  } catch (error) {
+    next(error)
   }
 }
 
