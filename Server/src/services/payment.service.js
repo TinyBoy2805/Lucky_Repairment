@@ -1,5 +1,6 @@
 import { db } from '../config/firebase.js'
 import { badRequest, conflict, forbidden, notFound } from '../utils/http-error.js'
+import { matchesSearch, paginate, readListQuery, sortList } from '../utils/list-query.js'
 
 export const PAYMENT_METHODS = ['cash', 'ewallet', 'bank']
 export const PAYMENT_STATUSES = ['pending', 'confirmed', 'failed']
@@ -15,15 +16,19 @@ const toList = (value) =>
     .filter(([id]) => id !== '_schema')
     .map(([id, data]) => ({ id, ...data }))
 
+async function readAllPayments() {
+  const snapshot = await paymentsRef().once('value')
+  if (!snapshot.exists()) return []
+  return toList(snapshot.val())
+}
+
 /**
  * Danh sách thanh toán theo vai trò:
  * - customer → đơn của mình, repairman → đơn mình phụ trách, admin → tất cả.
  */
-export async function listPayments(viewer) {
-  const snapshot = await paymentsRef().once('value')
-  if (!snapshot.exists()) return []
-
-  let items = toList(snapshot.val())
+export async function listPayments(viewer, query = {}) {
+  const options = readListQuery(query)
+  let items = await readAllPayments()
 
   if (viewer.role === 'customer') {
     items = items.filter((item) => item.customerUid === viewer.uid)
@@ -31,7 +36,26 @@ export async function listPayments(viewer) {
     items = items.filter((item) => item.repairmanUid === viewer.uid)
   }
 
-  return items.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
+  if (query.status) {
+    items = items.filter((item) => item.status === query.status)
+  }
+  if (query.method) {
+    items = items.filter((item) => item.method === query.method)
+  }
+  if (query.requestId) {
+    items = items.filter((item) => item.requestId === query.requestId)
+  }
+
+  items = items.filter((item) =>
+    matchesSearch(
+      item,
+      ['requestId', 'customerUid', 'repairmanUid', 'note', 'method'],
+      options.search,
+    ),
+  )
+  items = sortList(items, options.sort, options.order, 'createdAt', 'desc')
+
+  return paginate(items, options)
 }
 
 export async function getPayment(id) {

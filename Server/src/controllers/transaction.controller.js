@@ -3,9 +3,6 @@ import { listTransactions } from '../services/transaction.service.js'
 
 /** GET /api/transactions — ?uid= &type= (admin) */
 export const index = asyncHandler(async (req, res) => {
-  const transactions = await listTransactions(req.profile, {
-    uid: req.query.uid,
-    type: req.query.type,
-  })
-  res.json({ transactions, total: transactions.length })
+  const { items, ...meta } = await listTransactions(req.profile, req.query)
+  res.json({ transactions: items, ...meta })
 })

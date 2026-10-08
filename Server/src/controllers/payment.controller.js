@@ -8,8 +8,8 @@ import {
 
 /** GET /api/payments */
 export const index = asyncHandler(async (req, res) => {
-  const payments = await listPayments(req.profile)
-  res.json({ payments, total: payments.length })
+  const { items, ...meta } = await listPayments(req.profile, req.query)
+  res.json({ payments: items, ...meta })
 })
 
 /** GET /api/payments/:id */

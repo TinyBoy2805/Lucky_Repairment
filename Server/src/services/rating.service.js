@@ -1,5 +1,6 @@
 import { db } from '../config/firebase.js'
 import { badRequest, conflict, forbidden, notFound } from '../utils/http-error.js'
+import { matchesSearch, paginate, readListQuery, sortList } from '../utils/list-query.js'
 
 const ratingsRef = () => db.ref('ratings')
 const ratingRef = (id) => ratingsRef().child(id)
@@ -12,17 +13,21 @@ const toList = (value) =>
     .filter(([id]) => id !== '_schema')
     .map(([id, data]) => ({ id, ...data }))
 
+async function readAllRatings() {
+  const snapshot = await ratingsRef().once('value')
+  if (!snapshot.exists()) return []
+  return toList(snapshot.val())
+}
+
 /**
  * Danh sách đánh giá:
  * - customer → đánh giá do mình tạo.
  * - repairman → đánh giá về mình.
  * - admin → tất cả (có thể lọc ?repairmanUid=).
  */
-export async function listRatings(viewer, { repairmanUid } = {}) {
-  const snapshot = await ratingsRef().once('value')
-  if (!snapshot.exists()) return []
-
-  let items = toList(snapshot.val())
+export async function listRatings(viewer, query = {}) {
+  const options = readListQuery(query)
+  let items = await readAllRatings()
 
   if (viewer.role === 'customer') {
     items = items.filter((item) => item.customerUid === viewer.uid)
@@ -30,11 +35,22 @@ export async function listRatings(viewer, { repairmanUid } = {}) {
     items = items.filter((item) => item.repairmanUid === viewer.uid)
   }
 
-  if (repairmanUid) {
-    items = items.filter((item) => item.repairmanUid === repairmanUid)
+  if (query.repairmanUid) {
+    items = items.filter((item) => item.repairmanUid === query.repairmanUid)
+  }
+  if (query.requestId) {
+    items = items.filter((item) => item.requestId === query.requestId)
+  }
+  if (query.score !== undefined && query.score !== '') {
+    items = items.filter((item) => Number(item.score) === Number(query.score))
   }
 
-  return items.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
+  items = items.filter((item) =>
+    matchesSearch(item, ['comment', 'repairmanName', 'customerName'], options.search),
+  )
+  items = sortList(items, options.sort, options.order, 'createdAt', 'desc')
+
+  return paginate(items, options)
 }
 
 export async function getRating(id) {
@@ -65,7 +81,7 @@ export async function createRating(customer, input = {}) {
     throw conflict('Chỉ đánh giá được khi đơn đã hoàn thành.')
   }
 
-  const existing = await listRatings({ role: 'admin' })
+  const existing = await readAllRatings()
   if (existing.some((item) => item.requestId === requestId)) {
     throw conflict('Đơn này đã được đánh giá.')
   }

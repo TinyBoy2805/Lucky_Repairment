@@ -130,6 +130,12 @@ async function cleanup(created) {
       // bỏ qua
     }
   }
+
+  if (created.originalPricing === null) {
+    await db.ref('settings/pricing').remove()
+  } else if (created.originalPricing) {
+    await db.ref('settings/pricing').set(created.originalPricing)
+  }
 }
 
 async function main() {
@@ -150,6 +156,7 @@ async function main() {
     paymentIds: [],
     reportIds: [],
     chatRequestIds: [],
+    originalPricing: undefined,
   }
 
   const tokens = {}
@@ -389,6 +396,188 @@ async function main() {
 
     res = await api('GET', '/api/reports/khong-ton-tai', { token: tokens.admin })
     check('báo cáo không tồn tại → 404', res.status === 404, res.status)
+
+    section('QUẢN TRỊ')
+    res = await api('GET', '/api/admin/stats', { token: tokens.customer })
+    check('người thường xem thống kê → 403', res.status === 403, res.status)
+
+    res = await api('GET', '/api/admin/stats', { token: tokens.admin })
+    check('admin xem thống kê → 200', res.status === 200 && res.data.stats?.users?.total >= 4, res.status)
+
+    check(
+      'thống kê đơn hàng đủ trạng thái done + pending',
+      res.data.stats?.requests?.byStatus?.done >= 1 && res.data.stats?.requests?.byStatus?.pending >= 1,
+      res.data?.stats?.requests?.byStatus,
+    )
+
+    check(
+      'thống kê doanh thu payment đã xác nhận',
+      res.data.stats?.payments?.confirmedAmount >= 200000,
+      res.data?.stats?.payments,
+    )
+
+    res = await api('GET', '/api/admin/summary', { token: tokens.admin })
+    check(
+      'admin xem tổng hợp badge → 200',
+      res.status === 200 && typeof res.data.summary?.pendingOrders === 'number' && typeof res.data.summary?.openReports === 'number',
+      res.data,
+    )
+
+    res = await api('GET', '/api/admin/stats?range=today', { token: tokens.admin })
+    check(
+      'thống kê theo hôm nay → 200',
+      res.status === 200 && res.data.stats?.range === 'today' && typeof res.data.stats?.users?.inRange === 'number',
+      res.status,
+    )
+
+    res = await api('GET', '/api/admin/summary', { token: tokens.customer })
+    check('người thường xem tổng hợp → 403', res.status === 403, res.status)
+
+    section('BỘ LỌC + PHÂN TRANG')
+    res = await api('GET', '/api/requests?status=done', { token: tokens.admin })
+    check(
+      'lọc đơn theo trạng thái → 200',
+      res.status === 200 && res.data.requests.every((r) => r.status === 'done'),
+      res.status,
+    )
+
+    res = await api('GET', '/api/requests?search=Máy giặt', { token: tokens.admin })
+    check(
+      'tìm đơn theo từ khóa → 200',
+      res.status === 200 && res.data.requests.some((r) => r.id === requestId),
+      res.data?.total,
+    )
+
+    res = await api('GET', '/api/requests?page=1&pageSize=1', { token: tokens.admin })
+    check(
+      'phân trang đơn hàng → 1 phần tử + total',
+      res.status === 200 && res.data.requests.length <= 1 && typeof res.data.total === 'number' && res.data.page === 1,
+      res.data,
+    )
+
+    res = await api('GET', '/api/users?role=repairman', { token: tokens.admin })
+    check(
+      'lọc người dùng theo vai trò → 200',
+      res.status === 200 && res.data.users.every((u) => u.role === 'repairman'),
+      res.status,
+    )
+
+    res = await api('GET', '/api/users?search=smoke', { token: tokens.admin })
+    check('tìm người dùng theo từ khóa → 200', res.status === 200 && res.data.users.length >= 1, res.data?.total)
+
+    res = await api('GET', '/api/reports?status=resolved&targetType=request', { token: tokens.admin })
+    check(
+      'lọc báo cáo theo trạng thái + đối tượng → 200',
+      res.status === 200 && res.data.reports.every((r) => r.status === 'resolved' && r.targetType === 'request'),
+      res.status,
+    )
+
+    res = await api('GET', '/api/payments?status=confirmed', { token: tokens.admin })
+    check(
+      'lọc thanh toán theo trạng thái → 200',
+      res.status === 200 && res.data.payments.every((p) => p.status === 'confirmed'),
+      res.status,
+    )
+
+    res = await api('GET', '/api/payments?method=cash', { token: tokens.admin })
+    check(
+      'lọc thanh toán theo phương thức → 200',
+      res.status === 200 && res.data.payments.every((p) => p.method === 'cash'),
+      res.status,
+    )
+
+    res = await api('GET', `/api/payments?requestId=${requestId}`, { token: tokens.admin })
+    check(
+      'lọc thanh toán theo đơn → 200',
+      res.status === 200 && res.data.payments.some((p) => p.id === paymentId),
+      res.data?.total,
+    )
+
+    res = await api('GET', `/api/ratings?requestId=${requestId}`, { token: tokens.admin })
+    check('lọc đánh giá theo đơn → 200', res.status === 200, res.status)
+
+    res = await api('GET', '/api/categories?search=__smoke_none__', { token: tokens.admin })
+    check('tìm danh mục không khớp → 0', res.status === 200 && res.data.categories.length === 0, res.data?.total)
+
+    res = await api('GET', '/api/wallet/all?search=smoke', { token: tokens.admin })
+    check('tìm ví theo từ khóa → 200', res.status === 200, res.status)
+
+    res = await api('GET', '/api/transactions?type=deposit&page=1&pageSize=1', { token: tokens.admin })
+    check(
+      'lọc + phân trang giao dịch → 200',
+      res.status === 200 && res.data.transactions.every((t) => t.type === 'deposit') && res.data.transactions.length <= 1,
+      res.data?.total,
+    )
+
+    section('LỊCH LÀM VIỆC (ADMIN)')
+    res = await api('GET', '/api/schedules', { token: tokens.admin })
+    check(
+      'admin xem danh sách lịch → 200',
+      res.status === 200 && Array.isArray(res.data.schedules) && res.data.schedules.some((s) => s.uid === TEST_USERS.repairman.uid),
+      res.status,
+    )
+
+    res = await api('GET', '/api/schedules', { token: tokens.customer })
+    check('người thường xem danh sách lịch → 403', res.status === 403, res.status)
+
+    res = await api('GET', `/api/schedules/${TEST_USERS.repairman.uid}`, { token: tokens.admin })
+    check(
+      'admin xem chi tiết lịch thợ → 200',
+      res.status === 200 && res.data.schedule?.uid === TEST_USERS.repairman.uid,
+      res.status,
+    )
+
+    res = await api('PUT', `/api/schedules/${TEST_USERS.repairman.uid}`, {
+      token: tokens.admin,
+      body: { defaultStart: '07:00', defaultEnd: '16:00' },
+    })
+    check(
+      'admin sửa lịch thợ → 200',
+      res.status === 200 && res.data.schedule?.defaultStart === '07:00',
+      res.data?.schedule,
+    )
+
+    res = await api('POST', `/api/schedules/${TEST_USERS.repairman.uid}/timeoff`, {
+      token: tokens.admin,
+      body: { start: '2026-02-01 09:00', end: '2026-02-01 10:00', reason: 'admin test' },
+    })
+    check('admin thêm time-off cho thợ → 201', res.status === 201 && res.data.timeOff?.id, res.status)
+    const adminTimeOffId = res.data.timeOff?.id
+
+    res = await api('DELETE', `/api/schedules/${TEST_USERS.repairman.uid}/timeoff/${adminTimeOffId}`, {
+      token: tokens.admin,
+    })
+    check('admin xoá time-off của thợ → 200', res.status === 200, res.status)
+
+    section('CẤU HÌNH GIÁ')
+    const pricingSnapshot = await db.ref('settings/pricing').once('value')
+    created.originalPricing = pricingSnapshot.exists() ? pricingSnapshot.val() : null
+
+    res = await api('GET', '/api/settings/pricing', { token: tokens.customer })
+    check('người thường xem cấu hình giá → 403', res.status === 403, res.status)
+
+    res = await api('GET', '/api/settings/pricing', { token: tokens.admin })
+    check(
+      'admin xem cấu hình giá → 200',
+      res.status === 200 && typeof res.data.pricing?.commissionRate === 'number',
+      res.status,
+    )
+
+    res = await api('PUT', '/api/settings/pricing', {
+      token: tokens.admin,
+      body: { commissionRate: 12.5, minServiceFee: 20000, note: 'smoke' },
+    })
+    check(
+      'admin lưu cấu hình giá → 200',
+      res.status === 200 && res.data.pricing?.commissionRate === 12.5 && res.data.pricing?.minServiceFee === 20000,
+      res.data?.pricing,
+    )
+
+    res = await api('PUT', '/api/settings/pricing', {
+      token: tokens.admin,
+      body: { commissionRate: 200 },
+    })
+    check('tỷ lệ hoa hồng không hợp lệ → 400', res.status === 400, res.status)
   } finally {
     section('DỌN DẸP')
     await cleanup(created)

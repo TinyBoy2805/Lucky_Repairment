@@ -9,8 +9,8 @@ export const current = asyncHandler(async (req, res) => {
 
 /** GET /api/wallet/all — admin */
 export const all = asyncHandler(async (req, res) => {
-  const wallets = await listWallets()
-  res.json({ wallets, total: wallets.length })
+  const { items, ...meta } = await listWallets(req.query)
+  res.json({ wallets: items, ...meta })
 })
 
 /** POST /api/wallet/deposit */

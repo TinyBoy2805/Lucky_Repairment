@@ -1,5 +1,13 @@
 import { db } from '../config/firebase.js'
 import { badRequest, conflict, forbidden, notFound } from '../utils/http-error.js'
+import {
+  matchesSearch,
+  paginate,
+  parseRange,
+  readListQuery,
+  sortList,
+  withinRange,
+} from '../utils/list-query.js'
 
 export const REPORT_STATUSES = ['open', 'resolved', 'rejected']
 export const REPORT_TARGETS = ['user', 'request']
@@ -14,22 +22,44 @@ const toList = (value) =>
     .filter(([id]) => id !== '_schema')
     .map(([id, data]) => ({ id, ...data }))
 
+async function readAllReports() {
+  const snapshot = await reportsRef().once('value')
+  if (!snapshot.exists()) return []
+  return toList(snapshot.val())
+}
+
 /**
  * Danh sách báo cáo:
  * - admin → tất cả.
  * - user  → chỉ báo cáo do mình gửi.
  */
-export async function listReports(viewer) {
-  const snapshot = await reportsRef().once('value')
-  if (!snapshot.exists()) return []
-
-  let items = toList(snapshot.val())
+export async function listReports(viewer, query = {}) {
+  const options = readListQuery(query)
+  const range = parseRange(query)
+  let items = await readAllReports()
 
   if (viewer.role !== 'admin') {
     items = items.filter((item) => item.reporterUid === viewer.uid)
   }
 
-  return items.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
+  if (query.status) {
+    items = items.filter((item) => item.status === query.status)
+  }
+  if (query.targetType) {
+    items = items.filter((item) => item.targetType === query.targetType)
+  }
+
+  items = items.filter((item) => withinRange(item.createdAt, range))
+  items = items.filter((item) =>
+    matchesSearch(
+      item,
+      ['reason', 'description', 'reporterName', 'targetId'],
+      options.search,
+    ),
+  )
+  items = sortList(items, options.sort, options.order, 'createdAt', 'desc')
+
+  return paginate(items, options)
 }
 
 export async function getReport(id) {
