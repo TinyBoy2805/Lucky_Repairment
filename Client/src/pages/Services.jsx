@@ -48,10 +48,9 @@ export default function Services() {
       <div className="products-hero-banner">
         <div className="home-container">
           <div className="products-hero-banner__content">
-            <span className="home-badge">Thợ có mặt sau 15–30 phút • Báo giá minh bạch</span>
             <h1>Dịch Vụ Sửa Chữa Điện Nước Tại Nhà</h1>
             <p>
-              Khắc phục triệt để mọi sự cố điện dân dụng, rò rỉ bục vỡ nước ngầm, máy bơm, bình nóng lạnh, cống nghẹt. Kỹ thuật viên tay nghề cao, phục vụ 24/7.
+              Khắc phục triệt để mọi sự cố điện nước dân dụng. Kỹ thuật viên tay nghề cao, có mặt nhanh và báo giá minh bạch trước khi làm.
             </p>
           </div>
         </div>
@@ -73,14 +72,14 @@ export default function Services() {
               className={`products-cat-btn ${category === 'electric' ? 'products-cat-btn--active' : ''}`}
               onClick={() => setCategory('electric')}
             >
-              ⚡ Sửa chữa điện ({services.filter((s) => s.category === 'electric').length || '…'})
+              Sửa chữa điện ({services.filter((s) => s.category === 'electric').length || '…'})
             </button>
             <button
               type="button"
               className={`products-cat-btn ${category === 'water' ? 'products-cat-btn--active' : ''}`}
               onClick={() => setCategory('water')}
             >
-              💧 Sửa chữa nước ({services.filter((s) => s.category === 'water').length || '…'})
+              Sửa chữa nước ({services.filter((s) => s.category === 'water').length || '…'})
             </button>
           </div>
 
@@ -136,7 +135,7 @@ export default function Services() {
                     {srv.category === 'electric' ? 'Điện' : 'Nước'}
                   </span>
                   <span className="service-item-card__badge-time">
-                    ⚡ 15–30 phút
+                    15–30 phút
                   </span>
                 </div>
 

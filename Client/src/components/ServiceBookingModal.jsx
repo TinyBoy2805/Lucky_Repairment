@@ -242,7 +242,7 @@ export default function ServiceBookingModal({ service, isOpen, onClose, onSucces
                   <span>Bảo hành: <strong>{service.warranty}</strong></span>
                 </div>
                 <div className="order-summary-box__install" style={{ color: '#16a34a' }}>
-                  ✓ Thợ có mặt sau {service.responseTime}
+                  Có mặt sau {service.responseTime}
                 </div>
               </div>
             </div>
@@ -304,7 +304,7 @@ export default function ServiceBookingModal({ service, isOpen, onClose, onSucces
                     onClick={() => setUrgent(true)}
                     style={{ fontSize: 13, padding: '10px 12px' }}
                   >
-                    ⚡ Cần thợ gấp (15–30p)
+                    Cần thợ gấp (15–30 phút)
                   </button>
                   <button
                     type="button"
@@ -312,7 +312,7 @@ export default function ServiceBookingModal({ service, isOpen, onClose, onSucces
                     onClick={() => setUrgent(false)}
                     style={{ fontSize: 13, padding: '10px 12px' }}
                   >
-                    📅 Đặt lịch hẹn trước
+                    Hẹn ngày & giờ khác
                   </button>
                 </div>
 

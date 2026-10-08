@@ -758,9 +758,19 @@
   }
 
   &__icon {
-    font-size: 36px;
-    margin-bottom: 16px;
-    line-height: 1;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: $brand-soft;
+    color: $brand;
+    display: grid;
+    place-items: center;
+    margin: 0 auto 16px;
+
+    svg {
+      width: 24px;
+      height: 24px;
+    }
   }
 
   &__title {
@@ -936,8 +946,19 @@
     padding: 36px 16px;
 
     &-icon {
-      font-size: 40px;
-      margin-bottom: 12px;
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: $brand-soft;
+      color: $brand;
+      display: grid;
+      place-items: center;
+      margin: 0 auto 14px;
+
+      svg {
+        width: 26px;
+        height: 26px;
+      }
     }
 
     h4 {

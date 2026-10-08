@@ -105,8 +105,7 @@ export default function Customer() {
             Xin chào
             {user?.displayName
               ? `, ${user.displayName.trim().split(' ').slice(-1)[0]}`
-              : ''}{' '}
-            👋
+              : ''}
           </h1>
           <p>Quản lý yêu cầu sửa chữa và các đơn mua thiết bị điện nước tại đây.</p>
         </header>
@@ -118,14 +117,14 @@ export default function Customer() {
             className={`btn ${activeTab === 'requests' ? 'btn--primary' : 'btn--outline'}`}
             onClick={() => setActiveTab('requests')}
           >
-            🛠️ Yêu cầu sửa chữa ({requests.length})
+            Yêu cầu sửa chữa ({requests.length})
           </button>
           <button
             type="button"
             className={`btn ${activeTab === 'orders' ? 'btn--primary' : 'btn--outline'}`}
             onClick={() => setActiveTab('orders')}
           >
-            📦 Đơn mua thiết bị ({orders.length})
+            Đơn mua thiết bị ({orders.length})
           </button>
           <Link
             to="/services"
@@ -235,14 +234,14 @@ export default function Customer() {
                           <strong>{request.serviceName || request.device}</strong>
                           {request.appointmentTime && (
                             <div style={{ fontSize: 13, color: '#16a34a', fontWeight: 600, marginTop: 2 }}>
-                              ⏱️ Hẹn: {request.appointmentDate} ({request.appointmentTime})
+                              Hẹn: {request.appointmentDate} ({request.appointmentTime})
                             </div>
                           )}
                         </div>
                         <StatusBadge status={request.status} />
                       </div>
                       <p className="req-item__issue">{request.issue}</p>
-                      <p className="req-item__meta">📍 {request.address}</p>
+                      <p className="req-item__meta">Địa chỉ: {request.address}</p>
                       <div className="req-item__foot">
                         <span className="req-item__date">
                           Gửi lúc: {fmtDate(request.createdAt)}

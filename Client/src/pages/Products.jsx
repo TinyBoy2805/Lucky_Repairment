@@ -50,10 +50,9 @@ export default function Products() {
       <div className="products-hero-banner">
         <div className="home-container">
           <div className="products-hero-banner__content">
-            <span className="home-badge">Chính hãng 100% • Bảo hành dài hạn</span>
             <h1>Thiết Bị & Vật Tư Sửa Chữa Điện Nước</h1>
             <p>
-              Cung cấp linh kiện, thiết bị điện và phụ kiện ngành nước chính hãng từ các thương hiệu uy tín: Panasonic, Schneider, Rạng Đông, Inox SUS... Hỗ trợ thợ tới lắp đặt tận nơi.
+              Cung cấp linh kiện, thiết bị điện và phụ kiện ngành nước chính hãng từ các thương hiệu uy tín. Hỗ trợ thợ tới lắp đặt tận nơi.
             </p>
           </div>
         </div>
@@ -75,14 +74,14 @@ export default function Products() {
               className={`products-cat-btn ${category === 'electric' ? 'products-cat-btn--active' : ''}`}
               onClick={() => setCategory('electric')}
             >
-              ⚡ Thiết bị điện ({products.filter((p) => p.category === 'electric').length || '…'})
+              Thiết bị điện ({products.filter((p) => p.category === 'electric').length || '…'})
             </button>
             <button
               type="button"
               className={`products-cat-btn ${category === 'water' ? 'products-cat-btn--active' : ''}`}
               onClick={() => setCategory('water')}
             >
-              💧 Thiết bị nước ({products.filter((p) => p.category === 'water').length || '…'})
+              Thiết bị nước ({products.filter((p) => p.category === 'water').length || '…'})
             </button>
           </div>
 

@@ -34,14 +34,13 @@ export default function Home() {
           <div className="home-hero__content">
             <div className="home-badge">
               <span className="home-badge__dot" />
-              Dịch vụ sửa chữa điện nước tại nhà 24/7
+              Sửa chữa điện nước tại nhà 24/7
             </div>
             <h1 className="home-hero__title">
-              Đặt Lịch Sửa Chữa <span>Điện & Nước</span> Nhanh Chóng, Tận Nơi
+              Đặt Lịch Sửa Chữa <span>Điện & Nước</span> Nhanh Chóng
             </h1>
             <p className="home-hero__desc">
-              Đội ngũ kỹ thuật viên lành nghề, có mặt chỉ sau 15–30 phút. Báo giá công khai,
-              minh bạch trước khi sửa chữa, không phát sinh phụ phí và bảo hành dài hạn.
+              Kỹ thuật viên có mặt sau 15–30 phút. Báo giá công khai trước khi sửa chữa, không phát sinh phụ phí và bảo hành dài hạn.
             </p>
 
             <div className="home-hero__cta">
@@ -86,47 +85,24 @@ export default function Home() {
                 Hotline: 1900 6868
               </a>
             </div>
-
-            <div className="home-hero__stats">
-              <div className="home-stat">
-                <strong>15–30p</strong>
-                <span>Có mặt tại nhà</span>
-              </div>
-              <div className="home-stat__divider" />
-              <div className="home-stat">
-                <strong>10.000+</strong>
-                <span>Đơn hoàn thành</span>
-              </div>
-              <div className="home-stat__divider" />
-              <div className="home-stat">
-                <strong>100%</strong>
-                <span>Báo giá trước</span>
-              </div>
-              <div className="home-stat__divider" />
-              <div className="home-stat">
-                <strong>12 tháng</strong>
-                <span>Bảo hành chu đáo</span>
-              </div>
-            </div>
           </div>
 
           <div className="home-hero__card-box">
             <div className="home-hero-card">
               <div className="home-hero-card__header">
-                <h3>⚡ Bảng Gọi Thợ Cấp Tốc</h3>
-                <span className="home-hero-card__badge">Trực tuyến</span>
+                <h3>Gọi Thợ Nhanh</h3>
               </div>
               <p className="home-hero-card__text">
-                Gặp sự cố chập điện, vỡ ống nước, máy bơm hỏng? Nhấn gửi yêu cầu, thợ gần nhất sẽ tiếp nhận đơn ngay.
+                Chọn sự cố thường gặp để yêu cầu hỗ trợ:
               </p>
 
               <div className="home-quick-tags">
-                <span className="home-quick-tag">🔥 Chập cháy điện</span>
-                <span className="home-quick-tag">💧 Vỡ đường ống nước</span>
-                <span className="home-quick-tag">🚽 Tắc cống / Bồn cầu</span>
-                <span className="home-quick-tag">⚙️ Lắp đặt máy bơm</span>
-                <span className="home-quick-tag">💡 Thay bóng & ổ cắm</span>
-                <span className="home-quick-tag">🚿 Lắp bình nóng lạnh</span>
+                <span className="home-quick-tag">Chập cháy điện</span>
+                <span className="home-quick-tag">Bục vỡ ống nước</span>
+                <span className="home-quick-tag">Tắc bồn cầu & cống</span>
+                <span className="home-quick-tag">Sửa máy bơm nước</span>
+                <span className="home-quick-tag">Thay aptomat & ổ cắm</span>
+                <span className="home-quick-tag">Sửa bình nóng lạnh</span>
               </div>
 
               <div className="home-hero-card__footer">
@@ -135,7 +111,7 @@ export default function Home() {
                   className="btn btn--primary btn--block"
                   onClick={handleBookingClick}
                 >
-                  Gửi yêu cầu ngay →
+                  Gửi yêu cầu ngay
                 </button>
               </div>
             </div>
@@ -145,137 +121,11 @@ export default function Home() {
 
       {/* ===== Services Section ===== */}
       <section id="services" className="home-section">
-        <div className="home-container">
+        <div id="services-featured" className="home-container">
           <div className="home-section__header">
-            <span className="home-section__subtitle">Dịch vụ chúng tôi cung cấp</span>
-            <h2 className="home-section__title">Chuyên Sâu Điện & Nước Dân Dụng</h2>
+            <h2 className="home-section__title">Dịch Vụ Sửa Chữa Tiêu Biểu</h2>
             <p className="home-section__desc">
-              Đầy đủ các giải pháp xử lý sự cố khẩn cấp cũng như thi công, bảo trì và lắp đặt thiết bị gia đình.
-            </p>
-          </div>
-
-          <div className="home-services-grid">
-            {/* Service 1: Điện */}
-            <div className="service-card">
-              <div className="service-card__icon service-card__icon--electric">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                </svg>
-              </div>
-              <h3 className="service-card__title">Sửa Chữa Hệ Thống Điện</h3>
-              <p className="service-card__desc">
-                Xử lý an toàn các rủi ro nguy hiểm về nguồn điện sinh hoạt, đảm bảo thẩm mỹ và tiêu chuẩn kỹ thuật.
-              </p>
-              <ul className="service-card__items">
-                <li>
-                  <svg viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                  Xử lý chập điện, nhảy aptomat liên tục, mất điện từng phòng
-                </li>
-                <li>
-                  <svg viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                  Thay thế, lắp đặt bóng đèn led, đèn chùm, công tắc, ổ cắm
-                </li>
-                <li>
-                  <svg viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                  Lắp quạt trần, quạt hút mùi, đi dây điện âm tường / nổi
-                </li>
-                <li>
-                  <svg viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                  Lắp tủ điện, cầu dao chống rò giật RCBO an toàn cho trẻ nhỏ
-                </li>
-              </ul>
-              <div className="service-card__foot">
-                <button
-                  type="button"
-                  className="btn btn--outline btn--sm btn--block"
-                  onClick={handleBookingClick}
-                >
-                  Đặt thợ sửa điện →
-                </button>
-              </div>
-            </div>
-
-            {/* Service 2: Nước */}
-            <div className="service-card">
-              <div className="service-card__icon service-card__icon--water">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
-                </svg>
-              </div>
-              <h3 className="service-card__title">Sửa Chữa Hệ Thống Nước</h3>
-              <p className="service-card__desc">
-                Khắc phục triệt để tình trạng rò rỉ, thất thoát nước, mất nước hoặc tắc nghẽn đường ống sinh hoạt.
-              </p>
-              <ul className="service-card__items">
-                <li>
-                  <svg viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                  Dò tìm và sửa rò rỉ, bục vỡ đường ống cấp & thoát nước ngầm
-                </li>
-                <li>
-                  <svg viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                  Thông tắc bồn cầu, chậu rửa bát, thoát sàn, đường cống nghẹt
-                </li>
-                <li>
-                  <svg viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                  Sửa chữa máy bơm nước (cháy máy, kêu to, không lên nước)
-                </li>
-                <li>
-                  <svg viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                  Lắp vòi sen tắm, lavabo, bồn rửa chén, bình nước nóng lạnh
-                </li>
-              </ul>
-              <div className="service-card__foot">
-                <button
-                  type="button"
-                  className="btn btn--outline btn--sm btn--block"
-                  onClick={handleBookingClick}
-                >
-                  Đặt thợ sửa nước →
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ===== Featured Services Section ===== */}
-      <section id="services-featured" className="home-section">
-        <div className="home-container">
-          <div className="home-section__header">
-            <span className="home-section__subtitle">Giải pháp chuyên nghiệp</span>
-            <h2 className="home-section__title">Các Gói Dịch Vụ Sửa Chữa Tiêu Biểu</h2>
-            <p className="home-section__desc">
-              Kỹ thuật viên lành nghề có mặt sau 15–30 phút. Báo giá công khai trước khi làm, kiểm tra miễn phí và bảo hành dài hạn.
+              Kỹ thuật viên lành nghề có mặt sau 15–30 phút. Báo giá công khai trước khi làm, bảo hành dài hạn.
             </p>
           </div>
 
@@ -289,7 +139,7 @@ export default function Home() {
                       {srv.category === 'electric' ? 'Điện' : 'Nước'}
                     </span>
                     <span className="service-item-card__badge-time">
-                      ⚡ 15–30 phút
+                      15–30 phút
                     </span>
                   </div>
 
@@ -330,7 +180,7 @@ export default function Home() {
 
           <div style={{ textAlign: 'center' }}>
             <Link to="/services" className="btn btn--outline btn--lg">
-              Xem tất cả dịch vụ sửa chữa điện nước →
+              Xem tất cả dịch vụ sửa chữa →
             </Link>
           </div>
         </div>
@@ -340,10 +190,9 @@ export default function Home() {
       <section id="process" className="home-section home-section--gray">
         <div className="home-container">
           <div className="home-section__header">
-            <span className="home-section__subtitle">Các bước thực hiện</span>
-            <h2 className="home-section__title">Quy Trình Đặt Lịch & Tiếp Nhận</h2>
+            <h2 className="home-section__title">Quy Trình Làm Việc</h2>
             <p className="home-section__desc">
-              Đơn giản, nhanh gọn và theo dõi tiến độ trực tiếp ngay trên website.
+              4 bước đơn giản từ tiếp nhận đến bảo hành.
             </p>
           </div>
 
@@ -352,15 +201,15 @@ export default function Home() {
               <div className="process-step__number">01</div>
               <h3 className="process-step__title">Gửi Yêu Cầu</h3>
               <p className="process-step__desc">
-                Điền thông tin sự cố, thiết bị hỏng, địa chỉ và số điện thoại liên hệ qua form đặt lịch.
+                Chọn dịch vụ và điền thông tin sự cố, địa chỉ cần sửa chữa.
               </p>
             </div>
 
             <div className="process-step">
               <div className="process-step__number">02</div>
-              <h3 className="process-step__title">Thợ Tiếp Nhận</h3>
+              <h3 className="process-step__title">Tiếp Nhận Đơn</h3>
               <p className="process-step__desc">
-                Kỹ thuật viên gần nhất tiếp nhận đơn, gọi điện xác nhận tình trạng và di chuyển tới nơi.
+                Kỹ thuật viên gọi xác nhận và có mặt sau 15–30 phút.
               </p>
             </div>
 
@@ -368,7 +217,7 @@ export default function Home() {
               <div className="process-step__number">03</div>
               <h3 className="process-step__title">Khảo Sát & Báo Giá</h3>
               <p className="process-step__desc">
-                Kiểm tra thực tế, đưa ra giải pháp và mức chi phí chi tiết. Khách hàng đồng ý mới tiến hành.
+                Kiểm tra thực tế và báo giá chi tiết, khách đồng ý mới làm.
               </p>
             </div>
 
@@ -376,7 +225,7 @@ export default function Home() {
               <div className="process-step__number">04</div>
               <h3 className="process-step__title">Nghiệm Thu & Bảo Hành</h3>
               <p className="process-step__desc">
-                Chạy thử thiết bị, dọn dẹp hiện trường sạch sẽ, thanh toán và nhận bảo hành chu đáo.
+                Vận hành thử thiết bị, dọn dẹp sạch sẽ và kích hoạt bảo hành.
               </p>
             </div>
           </div>
@@ -387,10 +236,9 @@ export default function Home() {
       <section id="pricing" className="home-section">
         <div className="home-container">
           <div className="home-section__header">
-            <span className="home-section__subtitle">Minh bạch & Rõ ràng</span>
             <h2 className="home-section__title">Bảng Giá Tham Khảo</h2>
             <p className="home-section__desc">
-              Cam kết báo đúng giá theo hạng mục thực tế, kiểm tra kỹ càng trước khi bắt đầu.
+              Báo đúng giá theo hạng mục thực tế, kiểm tra kỹ lưỡng trước khi bắt đầu.
             </p>
           </div>
 
@@ -464,7 +312,7 @@ export default function Home() {
               </table>
             </div>
             <div className="pricing-note">
-              * Giá trên là tiền công tham khảo, chưa bao gồm vật tư thay thế mới. Bảng giá thực tế có thể thay đổi tùy độ phức tạp của vị trí lắp đặt.
+              * Giá trên là tiền công tham khảo, chưa bao gồm vật tư thay thế mới.
             </div>
           </div>
         </div>
@@ -474,43 +322,60 @@ export default function Home() {
       <section id="why-us" className="home-section home-section--gray">
         <div className="home-container">
           <div className="home-section__header">
-            <span className="home-section__subtitle">An tâm trao gửi</span>
-            <h2 className="home-section__title">Vì Sao Chọn Lucky Repairment?</h2>
+            <h2 className="home-section__title">Cam Kết Dịch Vụ</h2>
             <p className="home-section__desc">
-              Chúng tôi xây dựng tiêu chuẩn dịch vụ tin cậy để khách hàng luôn yên tâm trong chính ngôi nhà của mình.
+              Tiêu chuẩn phục vụ chuyên nghiệp, an tâm cho mọi gia đình.
             </p>
           </div>
 
           <div className="why-grid">
             <div className="why-card">
-              <div className="why-card__icon">⏱️</div>
-              <h3 className="why-card__title">Nhanh Chóng & Kịp Thời</h3>
+              <div className="why-card__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+              </div>
+              <h3 className="why-card__title">Có Mặt Nhanh</h3>
               <p className="why-card__desc">
-                Hệ thống điều phối thợ lân cận giúp kỹ thuật viên có mặt ngay sau 15–30 phút khi nhận được yêu cầu.
+                Thợ có mặt sau 15–30 phút kể từ khi xác nhận đơn.
               </p>
             </div>
 
             <div className="why-card">
-              <div className="why-card__icon">👨‍🔧</div>
-              <h3 className="why-card__title">Thợ Lành Nghề, Thật Thà</h3>
+              <div className="why-card__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+                </svg>
+              </div>
+              <h3 className="why-card__title">Thợ Lành Nghề</h3>
               <p className="why-card__desc">
-                Kỹ thuật viên có bằng cấp chuyên môn, kinh nghiệm thực chiến trên 3 năm, lịch sự và trung thực.
+                Kỹ thuật viên giàu kinh nghiệm, lịch sự và trung thực.
               </p>
             </div>
 
             <div className="why-card">
-              <div className="why-card__icon">💰</div>
-              <h3 className="why-card__title">Minh Bạch Chi Phí</h3>
+              <div className="why-card__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="1" x2="12" y2="23" />
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                </svg>
+              </div>
+              <h3 className="why-card__title">Báo Giá Trước</h3>
               <p className="why-card__desc">
-                Kiểm tra lỗi, tư vấn phương án tối ưu và báo giá chi tiết trước. Tuyệt đối không vẽ việc, ép giá.
+                Khảo sát và báo giá công khai trước khi sửa chữa.
               </p>
             </div>
 
             <div className="why-card">
-              <div className="why-card__icon">🛡️</div>
-              <h3 className="why-card__title">Bảo Hành Dài Hạn</h3>
+              <div className="why-card__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+              </div>
+              <h3 className="why-card__title">Bảo Hành Chu Đáo</h3>
               <p className="why-card__desc">
-                Mọi công việc sửa chữa đều đi kèm chế độ bảo hành chu đáo. Hỗ trợ xử lý lại miễn phí nếu phát sinh lỗi cũ.
+                Cam kết bảo hành từ 3 đến 12 tháng tùy hạng mục.
               </p>
             </div>
           </div>
@@ -522,10 +387,10 @@ export default function Home() {
         <div className="home-container">
           <div className="home-cta-box">
             <h2 className="home-cta-box__title">
-              Ngôi Nhà Bạn Đang Gặp Vấn Đề Điện Nước?
+              Cần Thợ Sửa Chữa Điện Nước?
             </h2>
             <p className="home-cta-box__desc">
-              Đừng để chập điện hay rò rỉ nước làm ảnh hưởng đến an toàn và sinh hoạt của gia đình. Đặt lịch ngay hôm nay để được hỗ trợ tốt nhất!
+              Đặt lịch trực tuyến hoặc liên hệ hotline để được hỗ trợ nhanh chóng.
             </p>
             <div className="home-cta-box__actions">
               <button
@@ -533,10 +398,10 @@ export default function Home() {
                 className="btn btn--primary btn--lg"
                 onClick={handleBookingClick}
               >
-                Đặt thợ ngay bây giờ
+                Đặt thợ ngay
               </button>
               <a href="tel:19006868" className="btn btn--outline btn--lg">
-                Gọi tổng đài: 1900 6868
+                Hotline: 1900 6868
               </a>
             </div>
           </div>
