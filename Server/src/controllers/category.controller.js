@@ -9,8 +9,8 @@ import {
 
 /** GET /api/categories */
 export const index = asyncHandler(async (req, res) => {
-  const categories = await listCategories()
-  res.json({ categories, total: categories.length })
+  const { items, ...meta } = await listCategories(req.query)
+  res.json({ categories: items, ...meta })
 })
 
 /** GET /api/categories/:id */

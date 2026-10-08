@@ -7,8 +7,8 @@ import {
 
 /** GET /api/requests — khách xem đơn của mình, thợ/admin xem tất cả. */
 export const index = asyncHandler(async (req, res) => {
-  const requests = await listRequests(req.profile)
-  res.json({ requests, total: requests.length })
+  const { items, ...meta } = await listRequests(req.profile, req.query)
+  res.json({ requests: items, ...meta })
 })
 
 /** POST /api/requests — tạo yêu cầu sửa chữa mới. */

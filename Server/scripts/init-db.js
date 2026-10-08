@@ -76,6 +76,13 @@ const TABLES = {
     resolvedAt: 'number (ms) | null',
     resolvedBy: 'string | null',
   },
+  settings: {
+    commissionRate: 'number (%)',
+    minServiceFee: 'number',
+    currency: 'string',
+    note: 'string',
+    updatedAt: 'number (ms)',
+  },
 }
 
 async function main() {

@@ -1,5 +1,6 @@
 import { db } from '../config/firebase.js'
 import { badRequest, notFound } from '../utils/http-error.js'
+import { matchesSearch, paginate, readListQuery, sortList } from '../utils/list-query.js'
 
 const schedulesRef = () => db.ref('schedules')
 const scheduleRef = (uid) => schedulesRef().child(uid)
@@ -23,6 +24,56 @@ export async function getSchedule(uid) {
   const snapshot = await scheduleRef(uid).once('value')
   if (!snapshot.exists()) return defaultSchedule(uid)
   return { ...defaultSchedule(uid), ...snapshot.val() }
+}
+
+export async function getScheduleDetail(uid) {
+  const [schedule, userSnapshot] = await Promise.all([
+    getSchedule(uid),
+    db.ref(`users/${uid}`).once('value'),
+  ])
+
+  const user = userSnapshot.val() ?? {}
+  return {
+    ...schedule,
+    name: user.displayName || '',
+    email: user.email || '',
+    timeOffCount: Object.keys(schedule.timeOff ?? {}).length,
+  }
+}
+
+export async function listSchedules(query = {}) {
+  const options = readListQuery(query)
+  const [schedulesSnapshot, usersSnapshot] = await Promise.all([
+    schedulesRef().once('value'),
+    db.ref('users').once('value'),
+  ])
+
+  const users = usersSnapshot.val() ?? {}
+  const raw = schedulesSnapshot.exists() ? schedulesSnapshot.val() : {}
+
+  let items = Object.entries(users)
+    .filter(([, user]) => user.role === 'repairman')
+    .map(([uid, user]) => {
+      const data = raw[uid] ?? {}
+      return {
+        ...defaultSchedule(uid),
+        ...data,
+        uid,
+        name: user.displayName || '',
+        email: user.email || '',
+        timeOffCount: Object.keys(data.timeOff ?? {}).length,
+      }
+    })
+
+  if (query.online !== undefined && query.online !== '') {
+    const online = query.online === true || query.online === 'true'
+    items = items.filter((item) => Boolean(item.online) === online)
+  }
+
+  items = items.filter((item) => matchesSearch(item, ['uid', 'name', 'email'], options.search))
+  items = sortList(items, options.sort, options.order, 'updatedAt', 'desc')
+
+  return paginate(items, options)
 }
 
 /** Cập nhật giờ mặc định / ngày làm / trạng thái online. */
