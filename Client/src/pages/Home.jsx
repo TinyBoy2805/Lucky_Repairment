@@ -1,66 +1,32 @@
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import Logo from '../components/Logo.jsx'
-import { useAuth } from '../context/useAuth.js'
-import { homeFor } from '../lib/roles.js'
-
-const CURRENT_YEAR = new Date().getFullYear()
+import ServiceBookingModal from '../components/ServiceBookingModal.jsx'
+import { servicesApi } from '../lib/services.js'
 
 export default function Home() {
-  const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const [featuredServices, setFeaturedServices] = useState([])
+  const [selectedService, setSelectedService] = useState(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  useEffect(() => {
+    servicesApi
+      .list()
+      .then((data) => setFeaturedServices((data.services || []).slice(0, 4)))
+      .catch((err) => console.warn('Không thể tải dịch vụ nổi bật:', err))
+  }, [])
 
   const handleBookingClick = () => {
-    if (user) {
-      navigate(homeFor(user.role))
+    const el = document.getElementById('services-featured')
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' })
     } else {
-      navigate('/login')
+      navigate('/services')
     }
   }
 
   return (
-    <div className="home">
-      {/* ===== Header / Navbar ===== */}
-      <header className="home-header">
-        <div className="home-container home-header__inner">
-          <Link to="/" className="home-header__logo" aria-label="Trang chủ Lucky Repairment">
-            <Logo />
-          </Link>
-
-          <nav className="home-nav" aria-label="Điều hướng chính">
-            <a href="#services" className="home-nav__link">Dịch vụ</a>
-            <a href="#process" className="home-nav__link">Quy trình</a>
-            <a href="#pricing" className="home-nav__link">Bảng giá</a>
-            <a href="#why-us" className="home-nav__link">Cam kết</a>
-            <a href="#contact" className="home-nav__link">Liên hệ</a>
-          </nav>
-
-          <div className="home-header__actions">
-            {user ? (
-              <div className="home-user-menu">
-                <Link to={homeFor(user.role)} className="btn btn--primary btn--sm">
-                  Vào bảng điều khiển
-                </Link>
-                <button
-                  type="button"
-                  className="btn btn--outline btn--sm"
-                  onClick={logout}
-                >
-                  Đăng xuất
-                </button>
-              </div>
-            ) : (
-              <div className="home-auth-btns">
-                <Link to="/login" className="btn btn--outline btn--sm">
-                  Đăng nhập
-                </Link>
-                <Link to="/register" className="btn btn--primary btn--sm">
-                  Đăng ký
-                </Link>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
+    <>
 
       {/* ===== Hero Section ===== */}
       <section className="home-hero">
@@ -100,7 +66,7 @@ export default function Home() {
                   <line x1="8" y1="2" x2="8" y2="6" />
                   <line x1="3" y1="10" x2="21" y2="10" />
                 </svg>
-                {user ? 'Tạo yêu cầu sửa chữa' : 'Đặt lịch sửa ngay'}
+                Đặt lịch sửa ngay
               </button>
 
               <a href="tel:19006868" className="btn btn--outline home-hero__btn-call">
@@ -298,6 +264,74 @@ export default function Home() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== Featured Services Section ===== */}
+      <section id="services-featured" className="home-section">
+        <div className="home-container">
+          <div className="home-section__header">
+            <span className="home-section__subtitle">Giải pháp chuyên nghiệp</span>
+            <h2 className="home-section__title">Các Gói Dịch Vụ Sửa Chữa Tiêu Biểu</h2>
+            <p className="home-section__desc">
+              Kỹ thuật viên lành nghề có mặt sau 15–30 phút. Báo giá công khai trước khi làm, kiểm tra miễn phí và bảo hành dài hạn.
+            </p>
+          </div>
+
+          {featuredServices.length > 0 && (
+            <div className="services-grid" style={{ marginBottom: 36 }}>
+              {featuredServices.map((srv) => (
+                <div key={srv.id} className="service-item-card">
+                  <div className="service-item-card__thumb">
+                    <img src={srv.image} alt={srv.title} />
+                    <span className="service-item-card__badge">
+                      {srv.category === 'electric' ? 'Điện' : 'Nước'}
+                    </span>
+                    <span className="service-item-card__badge-time">
+                      ⚡ 15–30 phút
+                    </span>
+                  </div>
+
+                  <div className="service-item-card__body">
+                    <span className="service-item-card__cat-label">{srv.categoryName}</span>
+                    <h3 className="service-item-card__title">
+                      <Link to={`/services/${srv.id}`}>{srv.title}</Link>
+                    </h3>
+                    <p className="service-item-card__desc">{srv.shortDesc}</p>
+                    <div className="service-item-card__price">
+                      <span>Giá tham khảo:</span>
+                      <strong>{srv.priceDisplay}</strong>
+                    </div>
+                  </div>
+
+                  <div className="service-item-card__foot">
+                    <Link
+                      to={`/services/${srv.id}`}
+                      className="btn btn--outline btn--sm"
+                    >
+                      Xem chi tiết
+                    </Link>
+                    <button
+                      type="button"
+                      className="btn btn--primary btn--sm"
+                      onClick={() => {
+                        setSelectedService(srv)
+                        setIsModalOpen(true)
+                      }}
+                    >
+                      Đặt lịch ngay
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div style={{ textAlign: 'center' }}>
+            <Link to="/services" className="btn btn--outline btn--lg">
+              Xem tất cả dịch vụ sửa chữa điện nước →
+            </Link>
           </div>
         </div>
       </section>
@@ -509,54 +543,13 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ===== Footer ===== */}
-      <footer id="contact" className="home-footer">
-        <div className="home-container home-footer__inner">
-          <div className="home-footer__col">
-            <div className="home-footer__logo">
-              <Logo light />
-            </div>
-            <p className="home-footer__about">
-              Lucky Repairment — Nền tảng kết nối thợ sửa chữa điện nước chuyên nghiệp, uy tín hàng đầu tại nhà bạn. Phục vụ 24/7 tất cả các ngày trong tuần.
-            </p>
-          </div>
-
-          <div className="home-footer__col">
-            <h4 className="home-footer__title">Dịch Vụ</h4>
-            <ul className="home-footer__links">
-              <li><a href="#services">Sửa chữa điện dân dụng</a></li>
-              <li><a href="#services">Xử lý chập cháy điện</a></li>
-              <li><a href="#services">Dò tìm rò rỉ nước</a></li>
-              <li><a href="#services">Thông tắc đường ống nước</a></li>
-              <li><a href="#services">Lắp đặt máy bơm, bình nóng lạnh</a></li>
-            </ul>
-          </div>
-
-          <div className="home-footer__col">
-            <h4 className="home-footer__title">Liên Hệ & Hỗ Trợ</h4>
-            <ul className="home-footer__contact">
-              <li>
-                <strong>Hotline:</strong> <a href="tel:19006868">1900 6868</a> (24/7)
-              </li>
-              <li>
-                <strong>Email:</strong> <a href="mailto:hotro@luckyrepair.vn">hotro@luckyrepair.vn</a>
-              </li>
-              <li>
-                <strong>Địa chỉ:</strong> Toàn quốc — Phủ sóng các quận huyện lớn
-              </li>
-              <li>
-                <strong>Thời gian làm việc:</strong> 24/7 kể cả ngày Lễ, Tết
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        <div className="home-footer__bottom">
-          <div className="home-container">
-            <p>© {CURRENT_YEAR} Lucky Repairment. Bản quyền thuộc về Lucky Repairment.</p>
-          </div>
-        </div>
-      </footer>
-    </div>
+      {selectedService && (
+        <ServiceBookingModal
+          service={selectedService}
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+        />
+      )}
+    </>
   )
 }

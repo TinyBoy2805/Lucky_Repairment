@@ -1,10 +1,9 @@
-﻿import { useState } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import Field from '../components/Field.jsx'
 import PasswordField from '../components/PasswordField.jsx'
 import { useAuth } from '../context/useAuth.js'
 import { authErrorMessage } from '../lib/authErrors.js'
-import { homeFor } from '../lib/roles.js'
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const PHONE_PATTERN = /^(0|\+84)[0-9]{8,10}$/
@@ -12,6 +11,8 @@ const PHONE_PATTERN = /^(0|\+84)[0-9]{8,10}$/
 export default function Register() {
   const { user, register } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const returnTo = location.state?.returnTo || location.state?.from || '/'
 
   const [form, setForm] = useState({
     fullName: '',
@@ -26,7 +27,7 @@ export default function Register() {
   const [busy, setBusy] = useState(false)
 
   if (user) {
-    return <Navigate to={homeFor(user.role)} replace />
+    return <Navigate to={returnTo} replace />
   }
 
   const update = (name, value) => {
@@ -76,14 +77,14 @@ export default function Register() {
 
     setBusy(true)
     try {
-      const profile = await register({
+      await register({
         fullName: form.fullName.trim(),
         email: form.email.trim(),
         phone: form.phone.trim(),
         password: form.password,
         role: form.role,
       })
-      navigate(homeFor(profile.role), { replace: true })
+      navigate(returnTo, { replace: true })
     } catch (error) {
       console.error('[register]', error)
       setErrors({ general: authErrorMessage(error) })

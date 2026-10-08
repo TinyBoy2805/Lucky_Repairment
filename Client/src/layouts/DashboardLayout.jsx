@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Logo from '../components/Logo.jsx'
 import { useAuth } from '../context/useAuth.js'
@@ -30,6 +30,14 @@ export default function DashboardLayout({ roleLabel, children }) {
         </Link>
 
         <span className="dashboard__role">{label}</span>
+
+        <Link
+          to="/"
+          className="btn btn--outline btn--sm"
+          style={{ textDecoration: 'none', marginLeft: 12 }}
+        >
+          Trang chủ
+        </Link>
 
         <div className="dashboard__spacer" />
 

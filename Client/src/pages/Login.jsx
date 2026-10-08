@@ -1,10 +1,9 @@
-﻿import { useState } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import Field from '../components/Field.jsx'
 import PasswordField from '../components/PasswordField.jsx'
 import { useAuth } from '../context/useAuth.js'
 import { authErrorMessage } from '../lib/authErrors.js'
-import { homeFor } from '../lib/roles.js'
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -34,6 +33,8 @@ function GoogleIcon() {
 export default function Login() {
   const { user, login, loginWithGoogle } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const returnTo = location.state?.returnTo || location.state?.from || '/'
 
   const [form, setForm] = useState({
     email: '',
@@ -44,7 +45,7 @@ export default function Login() {
   const [busy, setBusy] = useState(false)
 
   if (user) {
-    return <Navigate to={homeFor(user.role)} replace />
+    return <Navigate to={returnTo} replace />
   }
 
   const update = (name, value) => {
@@ -73,8 +74,8 @@ export default function Login() {
 
     setBusy(true)
     try {
-      const profile = await login(email, form.password, form.remember)
-      navigate(homeFor(profile.role), { replace: true })
+      await login(email, form.password, form.remember)
+      navigate(returnTo, { replace: true })
     } catch (error) {
       console.error('[login]', error)
       setErrors({ general: authErrorMessage(error) })
@@ -86,8 +87,8 @@ export default function Login() {
   const handleGoogle = async () => {
     setBusy(true)
     try {
-      const profile = await loginWithGoogle()
-      navigate(homeFor(profile.role), { replace: true })
+      await loginWithGoogle()
+      navigate(returnTo, { replace: true })
     } catch (error) {
       console.error('[login-google]', error)
       setErrors({ general: authErrorMessage(error) })
