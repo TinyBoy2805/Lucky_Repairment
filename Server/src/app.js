@@ -3,6 +3,7 @@ import express from 'express'
 import { env } from './config/env.js'
 import { errorHandler, notFound } from './middlewares/error.middleware.js'
 import authRoutes from './routes/auth.routes.js'
+import adminRoutes from './routes/admin.routes.js'
 import userRoutes from './routes/user.routes.js'
 import requestRoutes from './routes/request.routes.js'
 import categoryRoutes from './routes/category.routes.js'
@@ -16,6 +17,7 @@ import reportRoutes from './routes/report.routes.js'
 import productRoutes from './routes/product.routes.js'
 import orderRoutes from './routes/order.routes.js'
 import serviceRoutes from './routes/service.routes.js'
+import settingsRoutes from './routes/settings.routes.js'
 
 export function createApp() {
   const app = express()
@@ -33,6 +35,7 @@ export function createApp() {
   })
 
   app.use('/api/auth', authRoutes)
+  app.use('/api/admin', adminRoutes)
   app.use('/api/users', userRoutes)
   app.use('/api/requests', requestRoutes)
   app.use('/api/bookings', requestRoutes)
@@ -47,6 +50,7 @@ export function createApp() {
   app.use('/api/reports', reportRoutes)
   app.use('/api/products', productRoutes)
   app.use('/api/orders', orderRoutes)
+  app.use('/api/settings', settingsRoutes)
 
   app.use(notFound)
   app.use(errorHandler)

@@ -4,7 +4,7 @@ import Logo from '../components/Logo.jsx'
 import { useAuth } from '../context/useAuth.js'
 import { homeFor, ROLE_LABEL } from '../lib/roles.js'
 
-export default function DashboardLayout({ roleLabel, children }) {
+export default function DashboardLayout({ roleLabel, children, sidebar }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [busy, setBusy] = useState(false)
@@ -71,7 +71,14 @@ export default function DashboardLayout({ roleLabel, children }) {
         </span>
       </header>
 
-      <main className="dashboard__content">{children}</main>
+      {sidebar ? (
+        <div className="dashboard__body">
+          <aside className="dashboard__sidebar">{sidebar}</aside>
+          <main className="dashboard__content">{children}</main>
+        </div>
+      ) : (
+        <main className="dashboard__content">{children}</main>
+      )}
     </div>
   )
 }

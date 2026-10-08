@@ -3,8 +3,8 @@ import { createReport, getReport, listReports, updateReport } from '../services/
 
 /** GET /api/reports */
 export const index = asyncHandler(async (req, res) => {
-  const reports = await listReports(req.profile)
-  res.json({ reports, total: reports.length })
+  const { items, ...meta } = await listReports(req.profile, req.query)
+  res.json({ reports: items, ...meta })
 })
 
 /** GET /api/reports/:id */

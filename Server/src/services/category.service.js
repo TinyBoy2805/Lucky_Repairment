@@ -1,5 +1,6 @@
 import { db } from '../config/firebase.js'
 import { badRequest, conflict, notFound } from '../utils/http-error.js'
+import { matchesSearch, paginate, readListQuery, sortList } from '../utils/list-query.js'
 
 const categoriesRef = () => db.ref('categories')
 const categoryRef = (id) => categoriesRef().child(id)
@@ -12,18 +13,32 @@ const toList = (value) =>
     .filter(([id]) => id !== '_schema')
     .map(([id, data]) => ({ id, ...data }))
 
-/** Danh sách danh mục (mọi user đã đăng nhập đều xem được). */
-export async function listCategories() {
+async function readAllCategories() {
   const snapshot = await categoriesRef().once('value')
   if (!snapshot.exists()) return []
+  return toList(snapshot.val())
+}
 
-  return toList(snapshot.val()).sort((a, b) =>
-    norm(a.name).localeCompare(norm(b.name), 'vi'),
+/** Danh sách danh mục (mọi user đã đăng nhập đều xem được). */
+export async function listCategories(query = {}) {
+  const options = readListQuery(query)
+  let items = await readAllCategories()
+
+  if (query.active !== undefined && query.active !== '') {
+    const active = query.active === true || query.active === 'true'
+    items = items.filter((item) => Boolean(item.active) === active)
+  }
+
+  items = items.filter((item) =>
+    matchesSearch(item, ['name', 'description'], options.search),
   )
+  items = sortList(items, options.sort, options.order, 'name', 'asc')
+
+  return paginate(items, options)
 }
 
 async function assertUniqueName(name, exceptId) {
-  const all = await listCategories()
+  const all = await readAllCategories()
   const duplicate = all.find(
     (item) => item.id !== exceptId && norm(item.name).toLowerCase() === name.toLowerCase(),
   )

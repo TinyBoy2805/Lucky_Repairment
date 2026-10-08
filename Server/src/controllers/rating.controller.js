@@ -8,8 +8,8 @@ import {
 
 /** GET /api/ratings — ?repairmanUid= */
 export const index = asyncHandler(async (req, res) => {
-  const ratings = await listRatings(req.profile, { repairmanUid: req.query.repairmanUid })
-  res.json({ ratings, total: ratings.length })
+  const { items, ...meta } = await listRatings(req.profile, req.query)
+  res.json({ ratings: items, ...meta })
 })
 
 /** GET /api/ratings/:id */

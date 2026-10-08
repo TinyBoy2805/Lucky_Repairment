@@ -1,4 +1,5 @@
 import { auth, db, env } from '../config/firebase.js'
+import { matchesSearch, paginate, readListQuery, sortList } from '../utils/list-query.js'
 
 export const ROLES = ['customer', 'repairman', 'admin']
 export const SELF_ASSIGNABLE_ROLES = ['customer', 'repairman']
@@ -71,13 +72,24 @@ export async function ensureProfile(decoded, options = {}) {
 }
 
 /** Danh sách toàn bộ user (admin only). */
-export async function listUsers() {
+export async function listUsers(query = {}) {
+  const options = readListQuery(query)
   const snapshot = await db.ref('users').once('value')
-  if (!snapshot.exists()) return []
 
-  return Object.entries(snapshot.val())
-    .map(([uid, data]) => ({ uid, ...data }))
-    .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
+  let items = snapshot.exists()
+    ? Object.entries(snapshot.val()).map(([uid, data]) => ({ uid, ...data }))
+    : []
+
+  if (query.role) {
+    items = items.filter((item) => item.role === query.role)
+  }
+
+  items = items.filter((item) =>
+    matchesSearch(item, ['displayName', 'email', 'phone'], options.search),
+  )
+  items = sortList(items, options.sort, options.order, 'createdAt', 'desc')
+
+  return paginate(items, options)
 }
 
 /** Đổi vai trò của 1 user (admin only). */

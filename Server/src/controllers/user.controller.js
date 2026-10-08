@@ -3,8 +3,8 @@ import { asyncHandler } from '../middlewares/error.middleware.js'
 
 /** GET /api/users — admin */
 export const index = asyncHandler(async (req, res) => {
-  const users = await listUsers()
-  res.json({ users, total: users.length })
+  const { items, ...meta } = await listUsers(req.query)
+  res.json({ users: items, ...meta })
 })
 
 /** GET /api/users/:uid — admin */

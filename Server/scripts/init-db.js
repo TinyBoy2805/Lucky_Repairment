@@ -93,6 +93,13 @@ const TABLES = {
     createdAt: 'number (ms)',
     updatedAt: 'number (ms)',
   },
+  settings: {
+    commissionRate: 'number (%)',
+    minServiceFee: 'number',
+    currency: 'string',
+    note: 'string',
+    updatedAt: 'number (ms)',
+  },
 }
 
 async function main() {

@@ -1,4 +1,12 @@
 import { db, firestore } from '../config/firebase.js'
+import {
+  matchesSearch,
+  paginate,
+  parseRange,
+  readListQuery,
+  sortList,
+  withinRange,
+} from '../utils/list-query.js'
 
 // Các trạng thái hợp lệ của 1 yêu cầu sửa chữa
 export const REQUEST_STATUSES = ['pending', 'assigned', 'in_progress', 'done']
@@ -23,14 +31,37 @@ const norm = (value) => String(value ?? '').trim()
  * - customer → chỉ thấy đơn của mình.
  * - repairman / admin → thấy tất cả (để nhận việc mới, theo dõi công việc).
  */
-export async function listRequests(viewer) {
-  const snapshot = await requestsCol().orderBy('createdAt', 'desc').get()
-  const all = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+export async function listRequests(viewer, query = {}) {
+  const options = readListQuery(query)
+  const range = parseRange(query)
+  const snapshot = await requestsRef().once('value')
+
+  let items = snapshot.exists()
+    ? Object.entries(snapshot.val()).map(([id, data]) => ({ id, ...data }))
+    : []
 
   if (viewer.role === 'customer') {
-    return all.filter((item) => item.customerUid === viewer.uid)
+    items = items.filter((item) => item.customerUid === viewer.uid)
   }
-  return all
+
+  if (query.status) {
+    items = items.filter((item) => item.status === query.status)
+  }
+  if (query.repairmanUid) {
+    items = items.filter((item) => item.repairmanUid === query.repairmanUid)
+  }
+
+  items = items.filter((item) => withinRange(item.createdAt, range))
+  items = items.filter((item) =>
+    matchesSearch(
+      item,
+      ['device', 'issue', 'address', 'customerName', 'customerPhone', 'repairmanName'],
+      options.search,
+    ),
+  )
+  items = sortList(items, options.sort, options.order, 'createdAt', 'desc')
+
+  return paginate(items, options)
 }
 
 /** Tạo yêu cầu sửa chữa mới — bắt buộc người dùng đã đăng nhập */

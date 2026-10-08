@@ -1,4 +1,12 @@
 import { db } from '../config/firebase.js'
+import {
+  matchesSearch,
+  paginate,
+  parseRange,
+  readListQuery,
+  sortList,
+  withinRange,
+} from '../utils/list-query.js'
 
 const transactionsRef = () => db.ref('transactions')
 
@@ -12,21 +20,31 @@ const toList = (value) =>
  * - user thường → chỉ giao dịch của mình.
  * - admin       → tất cả, có thể lọc ?uid= và ?type=.
  */
-export async function listTransactions(viewer, { uid, type } = {}) {
+export async function listTransactions(viewer, query = {}) {
+  const options = readListQuery(query)
+  const range = parseRange(query)
   const snapshot = await transactionsRef().once('value')
-  if (!snapshot.exists()) return []
 
-  let items = toList(snapshot.val())
+  let items = snapshot.exists() ? toList(snapshot.val()) : []
 
   if (viewer.role !== 'admin') {
     items = items.filter((item) => item.uid === viewer.uid)
-  } else if (uid) {
-    items = items.filter((item) => item.uid === uid)
+  } else if (query.uid) {
+    items = items.filter((item) => item.uid === query.uid)
   }
 
-  if (type) {
-    items = items.filter((item) => item.type === type)
+  if (query.type) {
+    items = items.filter((item) => item.type === query.type)
+  }
+  if (query.status) {
+    items = items.filter((item) => item.status === query.status)
   }
 
-  return items.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
+  items = items.filter((item) => withinRange(item.createdAt, range))
+  items = items.filter((item) =>
+    matchesSearch(item, ['uid', 'type', 'status'], options.search),
+  )
+  items = sortList(items, options.sort, options.order, 'createdAt', 'desc')
+
+  return paginate(items, options)
 }

@@ -1,5 +1,6 @@
 import { db } from '../config/firebase.js'
 import { badRequest, conflict } from '../utils/http-error.js'
+import { matchesSearch, paginate, readListQuery, sortList } from '../utils/list-query.js'
 
 export const TRANSACTION_TYPES = [
   'deposit',
@@ -33,11 +34,26 @@ export async function getWallet(uid) {
 }
 
 /** Danh sách ví (admin). */
-export async function listWallets() {
-  const snapshot = await walletsRef().once('value')
-  if (!snapshot.exists()) return []
+export async function listWallets(query = {}) {
+  const options = readListQuery(query)
+  const [walletsSnapshot, usersSnapshot] = await Promise.all([
+    walletsRef().once('value'),
+    db.ref('users').once('value'),
+  ])
 
-  return toList(snapshot.val()).sort((a, b) => (b.balance ?? 0) - (a.balance ?? 0))
+  const users = usersSnapshot.val() ?? {}
+  const rows = walletsSnapshot.exists() ? toList(walletsSnapshot.val()) : []
+
+  let items = rows.map((item) => ({
+    ...item,
+    name: users[item.uid]?.displayName || '',
+    email: users[item.uid]?.email || '',
+  }))
+
+  items = items.filter((item) => matchesSearch(item, ['uid', 'name', 'email'], options.search))
+  items = sortList(items, options.sort, options.order, 'balance', 'desc')
+
+  return paginate(items, options)
 }
 
 async function recordTransaction(entry) {
