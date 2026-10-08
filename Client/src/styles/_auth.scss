@@ -2,7 +2,8 @@
 @use 'mixins' as *;
 
 .auth {
-  min-height: 100vh;
+  flex: 1;
+  min-height: calc(100vh - 72px);
   display: grid;
   grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
   background: $white;
@@ -45,6 +46,17 @@
   &__brand-body {
     position: relative;
     z-index: 1;
+  }
+
+  &__brand-logo {
+    display: inline-block;
+    text-decoration: none;
+    transition: opacity $transition, transform $transition;
+
+    &:hover {
+      opacity: 0.92;
+      transform: translateY(-1px);
+    }
   }
 
   &__headline {
@@ -118,6 +130,8 @@
   // ===== Bên form =====
   &__panel {
     display: flex;
+    align-items: center;
+    justify-content: center;
     padding: 48px 32px;
     background: $white;
   }
@@ -126,15 +140,6 @@
     width: 100%;
     max-width: 428px;
     margin: auto;
-  }
-
-  &__mobile-brand {
-    display: none;
-    margin-bottom: 36px;
-
-    @include respond(lg) {
-      display: block;
-    }
   }
 
   &__header {
@@ -219,13 +224,13 @@
     }
 
     &__panel {
-      padding: 40px 24px;
+      padding: 32px 20px;
     }
   }
 
   @include respond(sm) {
     &__panel {
-      padding: 32px 20px;
+      padding: 24px 16px;
     }
   }
 }

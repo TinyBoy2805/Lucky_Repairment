@@ -66,8 +66,7 @@ export default function Repairman() {
             Xin chào
             {user?.displayName
               ? `, ${user.displayName.trim().split(' ').slice(-1)[0]}`
-              : ''}{' '}
-            🔧
+              : ''}
           </h1>
           <p>Nhận việc mới và theo dõi các đơn đang sửa.</p>
         </header>
@@ -92,14 +91,19 @@ export default function Repairman() {
               {openRequests.map((request) => (
                 <li key={request.id} className="req-item">
                   <div className="req-item__top">
-                    <strong>{request.device}</strong>
+                    <div>
+                      <strong>{request.serviceName || request.device}</strong>
+                      {request.appointmentTime && (
+                        <div style={{ fontSize: 13, color: '#16a34a', fontWeight: 600, marginTop: 2 }}>
+                          Hẹn khách: {request.appointmentDate} ({request.appointmentTime})
+                        </div>
+                      )}
+                    </div>
                     <StatusBadge status={request.status} />
                   </div>
                   <p className="req-item__issue">{request.issue}</p>
                   <p className="req-item__meta">
-                    {request.customerName} •{' '}
-                    {request.customerPhone || 'Chưa có SĐT'} • 📍{' '}
-                    {request.address}
+                    Khách: {request.customerName} • SĐT: {request.customerPhone || request.phone || 'Chưa có SĐT'} • Địa chỉ: {request.address}
                   </p>
                   <div className="req-item__foot">
                     <span className="req-item__date">
@@ -134,12 +138,19 @@ export default function Repairman() {
                 return (
                   <li key={request.id} className="req-item">
                     <div className="req-item__top">
-                      <strong>{request.device}</strong>
+                      <div>
+                        <strong>{request.serviceName || request.device}</strong>
+                        {request.appointmentTime && (
+                          <div style={{ fontSize: 13, color: '#16a34a', fontWeight: 600, marginTop: 2 }}>
+                            Hẹn khách: {request.appointmentDate} ({request.appointmentTime})
+                          </div>
+                        )}
+                      </div>
                       <StatusBadge status={request.status} />
                     </div>
                     <p className="req-item__issue">{request.issue}</p>
                     <p className="req-item__meta">
-                      {request.customerName} • 📍 {request.address}
+                      Khách: {request.customerName} • SĐT: {request.customerPhone || request.phone || '—'} • Địa chỉ: {request.address}
                     </p>
                     <div className="req-item__foot">
                       <span className="req-item__date">

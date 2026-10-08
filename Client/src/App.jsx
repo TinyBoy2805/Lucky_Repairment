@@ -15,17 +15,32 @@ import AdminPayments from './pages/admin/AdminPayments.jsx'
 import AdminWallet from './pages/admin/AdminWallet.jsx'
 import AdminAvailability from './pages/admin/AdminAvailability.jsx'
 import AdminPricing from './pages/admin/AdminPricing.jsx'
-import Customer from './pages/Customer.jsx'
 import Repairman from './pages/Repairman.jsx'
+
+import MainLayout from './layouts/MainLayout.jsx'
+import Home from './pages/Home.jsx'
+import Services from './pages/Services.jsx'
+import ServiceDetail from './pages/ServiceDetail.jsx'
+import Products from './pages/Products.jsx'
+import ProductDetail from './pages/ProductDetail.jsx'
 
 export default function App() {
   return (
     <Routes>
-      {/* Khu vực xác thực */}
-      <Route element={<AuthLayout />}>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
+      {/* Các trang công khai — dùng chung thanh Header/Navbar cố định */}
+      <Route element={<MainLayout />}>
+        <Route path="/" element={<Home />} />
+        <Route path="/services" element={<Services />} />
+        <Route path="/services/:id" element={<ServiceDetail />} />
+        <Route path="/products" element={<Products />} />
+        <Route path="/products/:id" element={<ProductDetail />} />
+
+        {/* Khu vực xác thực — cũng hiển thị thanh heading (Navbar) */}
+        <Route element={<AuthLayout />}>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+        </Route>
       </Route>
 
       {/* 3 trang theo vai trò — bảo vệ bằng role */}
@@ -48,14 +63,7 @@ export default function App() {
         <Route path="availability" element={<AdminAvailability />} />
         <Route path="pricing" element={<AdminPricing />} />
       </Route>
-      <Route
-        path="/customer"
-        element={
-          <ProtectedRoute allow={['customer']}>
-            <Customer />
-          </ProtectedRoute>
-        }
-      />
+        <Route path="/customer" element={<Navigate to="/" replace />} />
       <Route
         path="/repairman"
         element={
@@ -65,8 +73,7 @@ export default function App() {
         }
       />
 
-      <Route path="/" element={<Navigate to="/login" replace />} />
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }

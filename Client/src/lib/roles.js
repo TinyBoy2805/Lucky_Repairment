@@ -1,7 +1,7 @@
 /** Trang đích mặc định theo từng vai trò. */
 export const ROLE_HOME = {
   admin: '/admin',
-  customer: '/customer',
+  customer: '/',
   repairman: '/repairman',
 }
 
@@ -12,5 +12,5 @@ export const ROLE_LABEL = {
 }
 
 export function homeFor(role) {
-  return ROLE_HOME[role] ?? '/customer'
+  return ROLE_HOME[role] ?? '/'
 }

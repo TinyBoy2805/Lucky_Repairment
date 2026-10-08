@@ -14,6 +14,9 @@ import paymentRoutes from './routes/payment.routes.js'
 import chatRoutes from './routes/chat.routes.js'
 import scheduleRoutes from './routes/schedule.routes.js'
 import reportRoutes from './routes/report.routes.js'
+import productRoutes from './routes/product.routes.js'
+import orderRoutes from './routes/order.routes.js'
+import serviceRoutes from './routes/service.routes.js'
 import settingsRoutes from './routes/settings.routes.js'
 
 export function createApp() {
@@ -35,6 +38,8 @@ export function createApp() {
   app.use('/api/admin', adminRoutes)
   app.use('/api/users', userRoutes)
   app.use('/api/requests', requestRoutes)
+  app.use('/api/bookings', requestRoutes)
+  app.use('/api/services', serviceRoutes)
   app.use('/api/categories', categoryRoutes)
   app.use('/api/ratings', ratingRoutes)
   app.use('/api/wallet', walletRoutes)
@@ -43,6 +48,8 @@ export function createApp() {
   app.use('/api/chats', chatRoutes)
   app.use('/api/schedules', scheduleRoutes)
   app.use('/api/reports', reportRoutes)
+  app.use('/api/products', productRoutes)
+  app.use('/api/orders', orderRoutes)
   app.use('/api/settings', settingsRoutes)
 
   app.use(notFound)

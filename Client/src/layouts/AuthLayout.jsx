@@ -21,7 +21,9 @@ export default function AuthLayout() {
     <div className="auth">
       <aside className="auth__brand">
         <div className="auth__brand-body">
-          <Logo light />
+          <Link to="/" className="auth__brand-logo" aria-label="Về trang chủ Lucky Repairment">
+            <Logo light />
+          </Link>
           <h2 className="auth__headline">
             Trung tâm quản lý dịch vụ sửa chữa
           </h2>
@@ -60,11 +62,6 @@ export default function AuthLayout() {
 
       <main className="auth__panel">
         <div className="auth__card">
-          <div className="auth__mobile-brand">
-            <Link to="/login" aria-label="Về trang đăng nhập">
-              <Logo />
-            </Link>
-          </div>
           <Outlet />
         </div>
       </main>

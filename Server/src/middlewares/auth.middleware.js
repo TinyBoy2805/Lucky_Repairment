@@ -43,6 +43,24 @@ export async function requireAuth(req, res, next) {
 }
 
 /**
+ * Xác thực tùy chọn: Nếu có token hợp lệ thì gắn req.profile, nếu không thì vẫn cho qua.
+ */
+export async function optionalAuth(req, res, next) {
+  const token = extractToken(req)
+  if (!token) return next()
+
+  try {
+    const decoded = await auth.verifyIdToken(token)
+    req.uid = decoded.uid
+    req.decoded = decoded
+    req.profile = await ensureProfile(decoded)
+  } catch {
+    // Bỏ qua lỗi nếu là optional
+  }
+  next()
+}
+
+/**
  * Phân quyền theo role. Dùng sau requireAuth.
  * requireRole('admin')  |  requireRole('admin', 'repairman')
  */
