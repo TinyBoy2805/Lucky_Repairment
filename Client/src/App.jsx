@@ -8,9 +8,14 @@ import Admin from './pages/Admin.jsx'
 import Customer from './pages/Customer.jsx'
 import Repairman from './pages/Repairman.jsx'
 
+import Home from './pages/Home.jsx'
+
 export default function App() {
   return (
     <Routes>
+      {/* Trang chủ */}
+      <Route path="/" element={<Home />} />
+
       {/* Khu vực xác thực */}
       <Route element={<AuthLayout />}>
         <Route path="/login" element={<Login />} />
@@ -44,8 +49,7 @@ export default function App() {
         }
       />
 
-      <Route path="/" element={<Navigate to="/login" replace />} />
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }
