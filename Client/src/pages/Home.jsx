@@ -2,18 +2,31 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import ServiceBookingModal from '../components/ServiceBookingModal.jsx'
 import { servicesApi } from '../lib/services.js'
+import { productsApi } from '../lib/products.js'
+import { fmtMoney } from '../lib/format.js'
 
 export default function Home() {
   const navigate = useNavigate()
   const [featuredServices, setFeaturedServices] = useState([])
   const [selectedService, setSelectedService] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [featuredProducts, setFeaturedProducts] = useState([])
+  const [productsError, setProductsError] = useState('')
 
   useEffect(() => {
     servicesApi
       .list()
       .then((data) => setFeaturedServices((data.services || []).slice(0, 4)))
       .catch((err) => console.warn('Không thể tải dịch vụ nổi bật:', err))
+
+    // Sản phẩm bán chạy (lấy từ API, không cần đăng nhập)
+    productsApi
+      .bestSelling(3)
+      .then((data) => setFeaturedProducts(data.products || []))
+      .catch((err) => {
+        console.warn('Không thể tải sản phẩm bán chạy:', err)
+        setProductsError('Chưa thể tải sản phẩm bán chạy.')
+      })
   }, [])
 
   const handleBookingClick = () => {
@@ -408,7 +421,51 @@ export default function Home() {
         </div>
       </section>
 
-      {selectedService && (
+      {/* ===== Featured Products Section ===== */}
+      <section id="featured-products" className="home-section">
+        <div className="home-container">
+          <div className="home-section__header">
+            <h2 className="home-section__title">Sản Phẩm Bán Chạy</h2>
+            <p className="home-section__desc">Top 3 sản phẩm được mua nhiều nhất</p>
+          </div>
+
+          {productsError && featuredProducts.length === 0 && (
+            <p className="home-section__desc">{productsError}</p>
+          )}
+
+          {featuredProducts.length > 0 && (
+            <div className="home-featured-products">
+              {featuredProducts.map((product) => (
+                <div key={product.id} className="home-featured-product">
+                  <Link to={`/products/${product.id}`} className="home-featured-product__img">
+                    <img src={product.image} alt={product.name} />
+                  </Link>
+                  <div className="home-featured-product__info">
+                    <h3 className="home-featured-product__name">{product.name}</h3>
+                    <span className="home-featured-product__price">
+                      {fmtMoney(product.price)}
+                    </span>
+                    <Link
+                      to={`/products/${product.id}`}
+                      className="btn btn--outline btn--sm"
+                    >
+                      Xem chi tiết
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div style={{ textAlign: 'center', marginTop: 24 }}>
+            <Link to="/products" className="btn btn--primary">
+              Xem tất cả sản phẩm
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {isModalOpen && (
         <ServiceBookingModal
           service={selectedService}
           isOpen={isModalOpen}

@@ -1,6 +1,7 @@
 import { api } from './api.js'
 import { getToken } from './firebase.js'
 import { buildQuery } from './query.js'
+import { productsApi } from './products.js'
 
 export const adminApi = {
   stats: async (range = 'all') =>
@@ -20,6 +21,13 @@ export const adminApi = {
     create: async (data) => api.post('/api/categories', data, await getToken()),
     update: async (id, data) => api.patch(`/api/categories/${id}`, data, await getToken()),
     remove: async (id) => api.delete(`/api/categories/${id}`, await getToken()),
+  },
+
+  products: {
+    list: (params = {}) => productsApi.list(params),
+    create: (data) => productsApi.create(data),
+    update: (id, data) => productsApi.update(id, data),
+    remove: (id) => productsApi.remove(id),
   },
 
   reports: {

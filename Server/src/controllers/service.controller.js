@@ -9,8 +9,8 @@ import {
 
 /** GET /api/services — Danh sách các dịch vụ sửa chữa từ Firebase */
 export const index = asyncHandler(async (req, res) => {
-  const { category, search } = req.query
-  const services = await listRepairServices({ category, search })
+  const { category, search, sort } = req.query
+  const services = await listRepairServices({ category, search, sort })
   res.json({ services, total: services.length })
 })
 

@@ -6,6 +6,8 @@ import { adminApi } from '../../lib/admin.js'
 import { buildQuery, useDebounced } from '../../lib/query.js'
 import { useAdminList } from '../../lib/useAdminList.js'
 import { dayEnd, dayStart, fmtDateTime } from '../../lib/format.js'
+import StatsColumnChart from '../../components/StatsColumnChart.jsx'
+import StatsPieChart from '../../components/StatsPieChart.jsx'
 
 const TARGET_LABEL = {
   user: 'Người dùng',
@@ -177,6 +179,16 @@ export default function AdminReports() {
           <span className="toolbar__spacer" />
           <span className="toolbar__count">{data?.total ?? 0} báo cáo</span>
         </div>
+
+        {/* Biểu đồ thống kê */}
+        <section className="card">
+          <div className="toolbar">
+            <h2 className="card__title">Thống kê doanh thu</h2>
+            <span className="toolbar__spacer" />
+          </div>
+          <StatsColumnChart />
+          <StatsPieChart />
+        </section>
 
         {loading ? (
           <p className="card__empty">Đang tải danh sách…</p>

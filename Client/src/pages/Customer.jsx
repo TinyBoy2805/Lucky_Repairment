@@ -97,6 +97,24 @@ export default function Customer() {
     }
   }
 
+  const handleCancelOrder = async (orderId) => {
+    // Hỏi xác nhận trước khi huỷ
+    if (!window.confirm(`Bạn có chắc muốn hủy đơn hàng #${orderId}?`)) return
+
+    setBusy(true)
+    setError('')
+    try {
+      const res = await ordersApi.cancel(orderId)
+      setSuccess(res?.message || `Đơn hàng #${orderId} đã được hủy.`)
+      // Tải lại danh sách đơn hàng
+      loadOrders()
+    } catch (err) {
+      setError(err.message || 'Không thể hủy đơn hàng. Vui lòng thử lại.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <DashboardLayout roleLabel="Khách hàng">
       <div className="page">
@@ -127,10 +145,16 @@ export default function Customer() {
             Đơn mua thiết bị ({orders.length})
           </button>
           <Link
-            to="/services"
+            to="/profile"
             className="btn btn--outline"
             style={{ marginLeft: 'auto' }}
           >
+            Thông tin cá nhân
+          </Link>
+          <Link to="/report" className="btn btn--outline">
+            Báo cáo
+          </Link>
+          <Link to="/services" className="btn btn--outline">
             + Đặt lịch dịch vụ mới
           </Link>
         </div>
@@ -275,6 +299,18 @@ export default function Customer() {
               </button>
             </div>
 
+            {success && (
+              <div className="alert alert--success" style={{ marginBottom: 16, marginTop: 12 }}>
+                <span>{success}</span>
+              </div>
+            )}
+
+            {error && (
+              <div className="alert alert--error" style={{ marginBottom: 16, marginTop: 12 }}>
+                <span>{error}</span>
+              </div>
+            )}
+
             {ordersLoading ? (
               <p className="card__empty">Đang tải danh sách đơn hàng…</p>
             ) : orders.length === 0 ? (
@@ -293,6 +329,19 @@ export default function Customer() {
                     label: ord.status,
                     cls: 'badge--pending',
                   }
+                  const paid = ord.finalAmount ?? ord.totalAmount ?? 0
+                  const canCancel = ['pending', 'payment_verified', 'confirmed'].includes(
+                    ord.status,
+                  )
+                  const canReview = ord.status === 'completed'
+                  const paymentLabel =
+                    {
+                      cod: 'Thanh toán khi nhận / lắp đặt (COD)',
+                      momo: 'Ví MoMo (QR)',
+                      zalopay: 'Ví ZaloPay (QR)',
+                      stripe: 'Thẻ quốc tế (Stripe)',
+                    }[ord.paymentMethod] || 'Thanh toán khi nhận (COD)'
+
                   return (
                     <li key={ord.id} className="req-item" style={{ padding: 20 }}>
                       <div className="req-item__top" style={{ marginBottom: 12 }}>
@@ -327,8 +376,18 @@ export default function Customer() {
                                 {item.includeInstallation && ' (kèm thợ lắp đặt)'}
                               </div>
                             </div>
-                            <div style={{ fontWeight: 700, fontSize: 14 }}>
-                              {item.subtotal?.toLocaleString('vi-VN')} đ
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <span style={{ fontWeight: 700, fontSize: 14 }}>
+                                {item.subtotal?.toLocaleString('vi-VN')} đ
+                              </span>
+                              {canReview && item.productId && (
+                                <Link
+                                  to={`/review/${item.productId}`}
+                                  className="btn btn--outline btn--sm"
+                                >
+                                  Đánh giá
+                                </Link>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -338,16 +397,29 @@ export default function Customer() {
                         <div><strong>Người nhận:</strong> {ord.receiverName} • {ord.phone}</div>
                         <div><strong>Địa chỉ:</strong> {ord.address}</div>
                         {ord.note && <div><strong>Ghi chú:</strong> {ord.note}</div>}
+                        {ord.status === 'cancelled' && ord.refundMessage && (
+                          <div style={{ color: '#b91c1c', marginTop: 4 }}>
+                            <strong>Hoàn tiền:</strong> {ord.refundMessage}
+                          </div>
+                        )}
                       </div>
 
                       <div className="req-item__foot" style={{ alignItems: 'baseline' }}>
-                        <span>
-                          Phương thức: {ord.paymentMethod === 'cod' ? 'Thanh toán khi nhận / lắp đặt (COD)' : 'Chuyển khoản'}
-                        </span>
-                        <div style={{ textAlign: 'right' }}>
+                        <span>Phương thức: {paymentLabel}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          {canCancel && (
+                            <button
+                              type="button"
+                              className="btn btn--outline btn--sm"
+                              disabled={busy}
+                              onClick={() => handleCancelOrder(ord.id)}
+                            >
+                              Hủy đơn
+                            </button>
+                          )}
                           <span style={{ fontSize: 13, color: '#64748b' }}>Tổng thanh toán: </span>
                           <strong style={{ fontSize: 18, color: '#e11d48' }}>
-                            {ord.totalAmount?.toLocaleString('vi-VN')} đ
+                            {paid.toLocaleString('vi-VN')} đ
                           </strong>
                         </div>
                       </div>

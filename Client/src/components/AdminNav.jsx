@@ -7,6 +7,7 @@ const LINKS = [
   { to: '/admin/accounts', label: 'Tài khoản' },
   { to: '/admin/orders', label: 'Đơn hàng', badge: 'pendingOrders' },
   { to: '/admin/categories', label: 'Danh mục' },
+  { to: '/admin/products', label: 'Sản phẩm' },
   { to: '/admin/ratings', label: 'Đánh giá' },
   { to: '/admin/payments', label: 'Thanh toán' },
   { to: '/admin/wallet', label: 'Ví & giao dịch' },

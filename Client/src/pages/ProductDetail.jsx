@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import OrderModal from '../components/OrderModal.jsx'
 import { productsApi } from '../lib/products.js'
+import { useCart } from '../context/useCart.js'
 
 export default function ProductDetail() {
   const { id } = useParams()
+  const { addItem } = useCart()
 
   const [product, setProduct] = useState(null)
   const [relatedProducts, setRelatedProducts] = useState([])
@@ -16,6 +18,7 @@ export default function ProductDetail() {
   const [includeInstallation, setIncludeInstallation] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('specs') // 'specs' | 'desc' | 'warranty'
+  const [cartNotice, setCartNotice] = useState('')
 
   useEffect(() => {
     let isMounted = true
@@ -243,6 +246,27 @@ export default function ProductDetail() {
 
               {/* Nút Đặt Hàng */}
               <div className="product-actions">
+                {cartNotice && (
+                  <div className="alert alert--success" role="status" style={{ marginBottom: 10 }}>
+                    <span>{cartNotice}</span>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  className="btn btn--outline btn--block product-btn-cart"
+                  onClick={() => {
+                    addItem(product, { quantity, includeInstallation })
+                    setCartNotice('Đã thêm vào giỏ hàng.')
+                    window.setTimeout(() => setCartNotice(''), 2000)
+                  }}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+                    <circle cx="9" cy="21" r="1" />
+                    <circle cx="20" cy="21" r="1" />
+                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+                  </svg>
+                  Thêm vào giỏ hàng
+                </button>
                 <button
                   type="button"
                   className="btn btn--primary btn--block product-btn-order"

@@ -6,6 +6,16 @@ import {
 import { asyncHandler } from '../middlewares/error.middleware.js'
 
 /**
+ * POST /api/auth/profile — Cập nhật thông tin profile người dùng
+ * Body: { name, phone, address }
+ */
+export const profile = asyncHandler(async (req, res) => {
+  const { name, phone, address } = req.body ?? {}
+  const profile = await ensureProfile(req.profile, { displayName: name, phone })
+  res.json({ user: profile })
+})
+
+/**
  * POST /api/auth/register
  * Client đã tạo tài khoản bằng Firebase Auth, server chỉ tạo profile + gán role.
  * Body: { displayName?, phone?, role? }   role ∈ customer | repairman

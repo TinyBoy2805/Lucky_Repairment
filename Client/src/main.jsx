@@ -4,12 +4,15 @@ import { BrowserRouter } from 'react-router-dom'
 import './index.scss'
 import Boot from './components/Boot.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
+import { CartProvider } from './context/CartContext.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <Boot />
+        <CartProvider>
+          <Boot />
+        </CartProvider>
       </AuthProvider>
     </BrowserRouter>
   </StrictMode>,

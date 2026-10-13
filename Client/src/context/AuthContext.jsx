@@ -8,8 +8,11 @@ import {
   browserLocalPersistence,
   browserSessionPersistence,
   createUserWithEmailAndPassword,
+  FacebookAuthProvider,
   GoogleAuthProvider,
   onAuthStateChanged,
+  reload,
+  sendEmailVerification,
   sendPasswordResetEmail,
   setPersistence,
   signInWithEmailAndPassword,
@@ -34,6 +37,7 @@ export function AuthProvider({ children }) {
       ...profile,
       uid: profile.uid ?? fbUser.uid,
       email: profile.email ?? fbUser.email,
+      emailVerified: Boolean(fbUser.emailVerified),
     })
   }, [])
 
@@ -71,6 +75,7 @@ export function AuthProvider({ children }) {
       ...profile,
       uid: profile.uid ?? credential.user.uid,
       email: profile.email ?? credential.user.email,
+      emailVerified: Boolean(credential.user.emailVerified),
     }
     setUser(next)
     return next
@@ -88,6 +93,24 @@ export function AuthProvider({ children }) {
       ...profile,
       uid: profile.uid ?? credential.user.uid,
       email: profile.email ?? credential.user.email,
+      emailVerified: Boolean(credential.user.emailVerified),
+    }
+    setUser(next)
+    return next
+  }, [])
+
+  const loginWithFacebook = useCallback(async () => {
+    const provider = new FacebookAuthProvider()
+
+    const credential = await signInWithPopup(auth, provider)
+    const token = await credential.user.getIdToken()
+    const { user: profile } = await api.post('/api/auth/login', {}, token)
+
+    const next = {
+      ...profile,
+      uid: profile.uid ?? credential.user.uid,
+      email: profile.email ?? credential.user.email,
+      emailVerified: Boolean(credential.user.emailVerified),
     }
     setUser(next)
     return next
@@ -105,6 +128,15 @@ export function AuthProvider({ children }) {
         await updateProfile(credential.user, { displayName: fullName })
       }
 
+      // Gửi email xác nhận đăng ký (không chặn luồng nếu gửi thất bại)
+      let emailSent = true
+      try {
+        await sendEmailVerification(credential.user)
+      } catch (error) {
+        emailSent = false
+        console.warn('[auth] Không gửi được email xác nhận:', error)
+      }
+
       const token = await credential.user.getIdToken()
       const { user: profile } = await api.post(
         '/api/auth/register',
@@ -116,12 +148,33 @@ export function AuthProvider({ children }) {
         ...profile,
         uid: profile.uid ?? credential.user.uid,
         email: profile.email ?? credential.user.email,
+        emailVerified: Boolean(credential.user.emailVerified),
+        verificationEmailSent: emailSent,
       }
       setUser(next)
       return next
     },
     [],
   )
+
+  /** Gửi lại email xác nhận cho tài khoản đang đăng nhập */
+  const resendVerificationEmail = useCallback(async () => {
+    const fbUser = auth.currentUser
+    if (!fbUser) throw new Error('Bạn cần đăng nhập để gửi lại email xác nhận.')
+    await sendEmailVerification(fbUser)
+    return true
+  }, [])
+
+  /** Kiểm tra lại trạng thái xác nhận email (sau khi người dùng bấm link trong mail) */
+  const refreshEmailVerification = useCallback(async () => {
+    const fbUser = auth.currentUser
+    if (!fbUser) return false
+    await reload(fbUser)
+    setUser((prev) =>
+      prev ? { ...prev, emailVerified: Boolean(fbUser.emailVerified) } : prev,
+    )
+    return Boolean(fbUser.emailVerified)
+  }, [])
 
   const resetPassword = useCallback(
     async (email) => sendPasswordResetEmail(auth, email),
@@ -144,9 +197,38 @@ export function AuthProvider({ children }) {
     setUser(null)
   }, [])
 
+  // Cập nhật cục bộ profile sau khi người dùng sửa thông tin
+  const updateUser = useCallback((patch) => {
+    setUser((prev) => (prev ? { ...prev, ...patch } : prev))
+  }, [])
+
   const value = useMemo(
-    () => ({ user, loading, login, loginWithGoogle, register, logout, resetPassword }),
-    [user, loading, login, loginWithGoogle, register, logout, resetPassword],
+    () => ({
+      user,
+      loading,
+      login,
+      loginWithGoogle,
+      loginWithFacebook,
+      register,
+      logout,
+      resetPassword,
+      updateUser,
+      resendVerificationEmail,
+      refreshEmailVerification,
+    }),
+    [
+      user,
+      loading,
+      login,
+      loginWithGoogle,
+      loginWithFacebook,
+      register,
+      logout,
+      resetPassword,
+      updateUser,
+      resendVerificationEmail,
+      refreshEmailVerification,
+    ],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

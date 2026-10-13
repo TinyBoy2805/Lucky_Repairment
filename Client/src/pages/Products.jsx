@@ -2,14 +2,22 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import OrderModal from '../components/OrderModal.jsx'
 import { productsApi } from '../lib/products.js'
+import { useDebounced } from '../lib/query.js'
+import { useCart } from '../context/useCart.js'
 
 export default function Products() {
+  const { addItem } = useCart()
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [addedId, setAddedId] = useState(null)
 
   const [category, setCategory] = useState('all') // 'all' | 'electric' | 'water'
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounced(search, 500)
+  const [brand, setBrand] = useState('all') // 'all' | brand names
+  const [brands, setBrands] = useState([])
+  const [sort, setSort] = useState('newest') // 'newest' | 'price-asc' | 'price-desc'
 
   // Quick Order modal
   const [selectedProduct, setSelectedProduct] = useState(null)
@@ -19,7 +27,7 @@ export default function Products() {
     setLoading(true)
     setError('')
     try {
-      const data = await productsApi.list({ category, search })
+      const data = await productsApi.list({ category, search, brand, sort })
       setProducts(data.products || [])
     } catch (err) {
       setError(err.message || 'Không thể tải danh sách sản phẩm.')
@@ -31,7 +39,18 @@ export default function Products() {
   useEffect(() => {
     loadProducts()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [category])
+  }, [debouncedSearch, category, brand, sort])
+
+  // Lấy danh sách thương hiệu (một lần) để dựng bộ lọc
+  useEffect(() => {
+    productsApi
+      .list()
+      .then((data) => {
+        const unique = [...new Set((data.products || []).map((p) => p.brand).filter(Boolean))]
+        setBrands(unique)
+      })
+      .catch(() => setBrands([]))
+  }, [])
 
   const handleSearchSubmit = (e) => {
     e.preventDefault()
@@ -41,6 +60,12 @@ export default function Products() {
   const handleQuickOrder = (prod) => {
     setSelectedProduct(prod)
     setIsModalOpen(true)
+  }
+
+  const handleAddToCart = (prod) => {
+    addItem(prod, { quantity: 1, includeInstallation: Boolean(prod.installationFee) })
+    setAddedId(prod.id)
+    window.setTimeout(() => setAddedId((prev) => (prev === prod.id ? null : prev)), 1600)
   }
 
   return (
@@ -85,6 +110,26 @@ export default function Products() {
             </button>
           </div>
 
+          <div className="products-brand-tabs">
+            <button
+              type="button"
+              className={`products-brand-btn ${brand === 'all' ? 'products-brand-btn--active' : ''}`}
+              onClick={() => setBrand('all')}
+            >
+              Tất cả thương hiệu
+            </button>
+            {brands.map((name) => (
+              <button
+                key={name}
+                type="button"
+                className={`products-brand-btn ${brand === name ? 'products-brand-btn--active' : ''}`}
+                onClick={() => setBrand(name)}
+              >
+                {name}
+              </button>
+            ))}
+          </div>
+
           <form onSubmit={handleSearchSubmit} className="products-search-form">
             <input
               type="text"
@@ -96,6 +141,18 @@ export default function Products() {
               Tìm kiếm
             </button>
           </form>
+
+          <div className="products-sort">
+            <select
+              className="admin-select"
+              value={sort}
+              onChange={(e) => setSort(e.target.value)}
+            >
+              <option value="newest">Mới nhất</option>
+              <option value="price-asc">Giá thấp đến cao</option>
+              <option value="price-desc">Giá cao đến thấp</option>
+            </select>
+          </div>
         </div>
 
         {error && (
@@ -143,6 +200,7 @@ export default function Products() {
                     <img src={item.image} alt={item.name} />
                     <span className="product-card__badge">
                       {item.category === 'electric' ? 'Điện' : 'Nước'}
+                      {item.brand && `· ${item.brand}`}
                     </span>
                   </div>
 
@@ -167,6 +225,13 @@ export default function Products() {
                     >
                       Chi tiết
                     </Link>
+                    <button
+                      type="button"
+                      className="btn btn--outline btn--sm"
+                      onClick={() => handleAddToCart(item)}
+                    >
+                      {addedId === item.id ? '✓ Đã thêm' : 'Thêm giỏ'}
+                    </button>
                     <button
                       type="button"
                       className="btn btn--primary btn--sm"

@@ -230,7 +230,7 @@ async function main() {
     check('chuyển sang done → 200', res.status === 200 && res.data.request?.status === 'done', res.data?.request?.status)
 
     // Đơn pending thứ 2 để test chat-before-assign + rating-not-done
-    res = await api('POST', '/api/requests', { token: tokens.customer, body: { device: 'Tủ lạnh', issue: 'Không lạnh', address: '2 Test' } })
+    res = await api('POST', '/api/requests', { token: tokens.customer, body: { device: 'Tủ lạnh', issue: 'Không lạnh', address: '2 Test', phone: '0900000000' } })
     const pendingId = res.data.request?.id
     if (pendingId) created.requestIds.push(pendingId)
     check('tạo đơn pending thứ 2 → 201', res.status === 201 && Boolean(pendingId), res.status)

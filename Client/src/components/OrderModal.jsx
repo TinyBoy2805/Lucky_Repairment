@@ -1,16 +1,17 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/useAuth.js'
-import { ordersApi } from '../lib/products.js'
+import { ordersApi, paymentsApi } from '../lib/products.js'
+import { computeDiscount, isValidPromoCode } from '../lib/promo.js'
 
-export default function OrderModal({
-  product,
-  quantity = 1,
-  includeInstallation = false,
-  isOpen,
-  onClose,
-  onSuccess,
-}) {
+const PAYMENT_METHOD_LABEL = {
+  cod: 'Thanh toán khi nhận hàng / nghiệm thu (COD)',
+  momo: 'Ví điện tử MoMo (QR)',
+  zalopay: 'Ví ZaloPay (QR)',
+  stripe: 'Thẻ quốc tế (Stripe)',
+}
+
+export default function OrderModal({ product, quantity = 1, includeInstallation = false, isOpen, onClose, onSuccess }) {
   const { user } = useAuth()
 
   const [form, setForm] = useState(() => ({
@@ -19,11 +20,17 @@ export default function OrderModal({
     address: '',
     note: '',
     paymentMethod: 'cod',
+    // New payment method tracking
+    stripeToken: '',
+    promoCode: '',
   }))
   const [errors, setErrors] = useState({})
   const [busy, setBusy] = useState(false)
   const [createdOrder, setCreatedOrder] = useState(null)
   const [submitError, setSubmitError] = useState('')
+  const [paySession, setPaySession] = useState(null)
+  const [payBusy, setPayBusy] = useState(false)
+  const [payError, setPayError] = useState('')
 
   if (!isOpen || !product) return null
 
@@ -32,6 +39,7 @@ export default function OrderModal({
   const productSubtotal = unitPrice * quantity
   const installSubtotal = installFee * quantity
   const totalAmount = productSubtotal + installSubtotal
+  const discountPreview = computeDiscount(form.promoCode, totalAmount)
 
   const update = (name, value) => {
     setForm((prev) => ({ ...prev, [name]: value }))
@@ -53,6 +61,15 @@ export default function OrderModal({
     setSubmitError('')
 
     try {
+      // Kiểm tra & tính mã khuyến mãi
+      const promoCode = form.promoCode.trim().toUpperCase()
+      if (promoCode && !isValidPromoCode(promoCode)) {
+        setErrors({ promoCode: 'Mã khuyến mãi không hợp lệ.' })
+        setBusy(false)
+        return
+      }
+      const discountAmount = computeDiscount(promoCode, totalAmount)
+
       const orderPayload = {
         receiverName: form.receiverName.trim(),
         phone: form.phone.trim(),
@@ -64,12 +81,16 @@ export default function OrderModal({
             productId: product.id,
             productName: product.name,
             productImage: product.image,
+            category: product.category,
+            brand: product.brand,
             price: unitPrice,
             quantity,
             includeInstallation,
             installationFee: installFee,
           },
         ],
+        promoCode,
+        discountAmount,
       }
 
       const res = await ordersApi.create(orderPayload)
@@ -85,7 +106,35 @@ export default function OrderModal({
   const handleClose = () => {
     setCreatedOrder(null)
     setSubmitError('')
+    setPaySession(null)
+    setPayError('')
     onClose()
+  }
+
+  // Tạo phiên thanh toán điện tử (MoMo/ZaloPay QR hoặc Stripe checkout)
+  const startElectronicPayment = async () => {
+    if (!createdOrder) return
+    setPayBusy(true)
+    setPayError('')
+    try {
+      const amount = createdOrder.finalAmount ?? createdOrder.totalAmount
+      if (createdOrder.paymentMethod === 'stripe') {
+        const { sessionUrl } = await paymentsApi.createStripe(createdOrder.id, amount)
+        setPaySession({ kind: 'stripe', url: sessionUrl })
+        if (sessionUrl) window.open(sessionUrl, '_blank', 'noopener')
+      } else {
+        const { momoUrl } = await paymentsApi.createMoMo(
+          createdOrder.id,
+          amount,
+          `Đơn hàng #${createdOrder.id}`,
+        )
+        setPaySession({ kind: createdOrder.paymentMethod, url: momoUrl })
+      }
+    } catch (err) {
+      setPayError(err.message || 'Không tạo được phiên thanh toán. Vui lòng thử lại.')
+    } finally {
+      setPayBusy(false)
+    }
   }
 
   return (
@@ -119,13 +168,71 @@ export default function OrderModal({
               </div>
               <div>
                 <span>Tổng thanh toán:</span>
-                <strong className="text-brand">{createdOrder.totalAmount?.toLocaleString('vi-VN')} đ</strong>
+                <strong className="text-brand">{((createdOrder.finalAmount ?? createdOrder.totalAmount) || 0).toLocaleString('vi-VN')} đ</strong>
               </div>
               <div>
                 <span>Hình thức:</span>
-                <span>{createdOrder.paymentMethod === 'cod' ? 'Thanh toán khi nhận hàng / nghiệm thu (COD)' : 'Chuyển khoản'}</span>
+                <span>{PAYMENT_METHOD_LABEL[createdOrder.paymentMethod] || 'Thanh toán khi nhận hàng / nghiệm thu (COD)'}</span>
               </div>
+              {createdOrder.discountAmount > 0 && (
+                <div>
+                  <span>Giảm giá:</span>
+                  <strong>{-createdOrder.discountAmount.toLocaleString('vi-VN')} đ</strong>
+                </div>
+              )}
             </div>
+
+            {createdOrder.paymentMethod && createdOrder.paymentMethod !== 'cod' && (
+              <div className="order-payment-box" style={{ marginTop: 16, padding: 16, border: '1px solid #e2e8f0', borderRadius: 10, textAlign: 'center' }}>
+                <p style={{ fontWeight: 600, marginBottom: 8 }}>
+                  {createdOrder.paymentMethod === 'stripe'
+                    ? 'Thanh toán bằng thẻ quốc tế (Stripe)'
+                    : `Thanh toán qua ${createdOrder.paymentMethod === 'zalopay' ? 'ZaloPay' : 'MoMo'}`}
+                </p>
+
+                {payError && <p className="alert alert--error">{payError}</p>}
+
+                {!paySession && (
+                  <button
+                    type="button"
+                    className="btn btn--primary"
+                    onClick={startElectronicPayment}
+                    disabled={payBusy}
+                  >
+                    {payBusy ? 'Đang tạo mã thanh toán…' : 'Tạo mã thanh toán ngay'}
+                  </button>
+                )}
+
+                {paySession && paySession.kind !== 'stripe' && paySession.url && (
+                  <div>
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(paySession.url)}`}
+                      alt="Mã QR thanh toán"
+                      style={{ width: 220, height: 220, margin: '0 auto', display: 'block' }}
+                    />
+                    <p style={{ fontSize: 13, color: '#64748b', marginTop: 8 }}>
+                      Mở ứng dụng {createdOrder.paymentMethod === 'zalopay' ? 'ZaloPay' : 'MoMo'} và quét mã QR để hoàn tất thanh toán.
+                    </p>
+                  </div>
+                )}
+
+                {paySession && paySession.kind === 'stripe' && (
+                  <div>
+                    <p style={{ fontSize: 13, color: '#64748b' }}>
+                      Trang thanh toán Stripe đã được mở ở tab mới. Nếu không thấy, hãy bấm nút bên dưới.
+                    </p>
+                    <a
+                      href={paySession.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn--primary"
+                    >
+                      Mở trang thanh toán Stripe
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="order-success__actions">
               {user ? (
@@ -204,65 +311,149 @@ export default function OrderModal({
                   </div>
                   {errors.phone && <span className="field__error">{errors.phone}</span>}
                 </div>
-              </div>
 
-              <div className="field">
-                <label htmlFor="orderAddress">Địa chỉ giao hàng & lắp đặt *</label>
-                <div className="field__control">
-                  <input
-                    id="orderAddress"
-                    type="text"
-                    placeholder="Số nhà, ngõ/ngách, tên đường, phường/xã, quận/huyện..."
-                    value={form.address}
-                    onChange={(e) => update('address', e.target.value)}
-                  />
-                </div>
-                {errors.address && <span className="field__error">{errors.address}</span>}
-              </div>
-
-              <div className="field">
-                <label htmlFor="orderNote">Ghi chú thêm (khung giờ thuận tiện, lưu ý khi lắp đặt...)</label>
-                <div className="field__control">
-                  <textarea
-                    id="orderNote"
-                    rows="2"
-                    placeholder="VD: Lắp đặt vào chiều nay sau 14h, gọi trước khi đến..."
-                    value={form.note}
-                    onChange={(e) => update('note', e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="field">
-                <label>Phương thức thanh toán</label>
-                <div className="order-payment-options">
-                  <label className="order-payment-option">
+                <div className="field">
+                  <label htmlFor="orderAddress">Địa chỉ giao hàng & lắp đặt *</label>
+                  <div className="field__control">
                     <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="cod"
-                      checked={form.paymentMethod === 'cod'}
-                      onChange={(e) => update('paymentMethod', e.target.value)}
+                      id="orderAddress"
+                      type="text"
+                      placeholder="Số nhà, ngõ/ngách, tên đường, phường/xã, quận/huyện..."
+                      value={form.address}
+                      onChange={(e) => update('address', e.target.value)}
                     />
-                    <div>
-                      <strong>Thanh toán khi nhận hàng / nghiệm thu (COD)</strong>
-                      <span>Kiểm tra hàng hoặc lắp đặt hoàn chỉnh mới thanh toán tiền mặt</span>
-                    </div>
-                  </label>
-                  <label className="order-payment-option">
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="banking"
-                      checked={form.paymentMethod === 'banking'}
-                      onChange={(e) => update('paymentMethod', e.target.value)}
-                    />
-                    <div>
-                      <strong>Chuyển khoản qua ngân hàng / Quét mã VietQR</strong>
-                      <span>Nhân viên sẽ gửi mã QR chuyển khoản khi xác nhận đơn</span>
-                    </div>
-                  </label>
+                  </div>
+                  {errors.address && <span className="field__error">{errors.address}</span>}
                 </div>
+
+                <div className="field">
+                  <label htmlFor="orderNote">Ghi chú thêm (khung giờ thuận tiện, lưu ý khi lắp đặt...)</label>
+                  <div className="field__control">
+                    <textarea
+                      id="orderNote"
+                      rows="2"
+                      placeholder="VD: Lắp đặt vào chiều nay sau 14h, gọi trước khi đến..."
+                      value={form.note}
+                      onChange={(e) => update('note', e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="field">
+                  <label>Phương thức thanh toán</label>
+                  <div className="order-payment-options">
+                    <label className="order-payment-option">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="cod"
+                        checked={form.paymentMethod === 'cod'}
+                        onChange={(e) => update('paymentMethod', e.target.value)}
+                      />
+                      <div>
+                        <strong>Thanh toán khi nhận hàng / nghiệm thu (COD)</strong>
+                        <span>Kiểm tra hàng hoặc lắp đặt hoàn chỉnh mới thanh toán tiền mặt</span>
+                      </div>
+                    </label>
+                    <label className="order-payment-option">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="momo"
+                        checked={form.paymentMethod === 'momo'}
+                        onChange={(e) => update('paymentMethod', e.target.value)}
+                      />
+                      <div>
+                        <strong>MoMo / ZaloPay (Quét mã QR)</strong>
+                        <span>Quét mã QR để thanh toán qua ví điện tử MoMo hoặc ZaloPay</span>
+                      </div>
+                    </label>
+                    <label className="order-payment-option">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="zalopay"
+                        checked={form.paymentMethod === 'zalopay'}
+                        onChange={(e) => update('paymentMethod', e.target.value)}
+                      />
+                      <div>
+                        <strong>ZaloPay (Quét mã QR)</strong>
+                        <span>Thanh toán nhanh bằng ví ZaloPay</span>
+                      </div>
+                    </label>
+                    <label className="order-payment-option">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="stripe"
+                        checked={form.paymentMethod === 'stripe'}
+                        onChange={(e) => update('paymentMethod', e.target.value)}
+                      />
+                      <div>
+                        <strong>Thẻ credit/debit (Stripe)</strong>
+                        <span>Thanh toán sécure qua cổng Stripe</span>
+                      </div>
+                    </label>
+                  </div>
+                  {/* Promo code input */}
+                  <div className="field">
+                    <label>Mã khuyến mãi</label>
+                    <div className="field__control">
+                      <input
+                        type="text"
+                        placeholder="Nhập mã giảm giá..."
+                        value={form.promoCode || ''}
+                        onChange={(e) => update('promoCode', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Stripe card form (conditionally shown when Stripe is selected) */}
+                {form.paymentMethod === 'stripe' && (
+                  <div className="stripe-card-form">
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label>Họ và tên trên thẻ</label>
+                        <input
+                          type="text"
+                          placeholder="Ví dụ: Nguyễn Văn A"
+                          value={form.stripeName || ''}
+                          onChange={(e) => update('stripeName', e.target.value)}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Số thẻ</label>
+                        <input
+                          type="text"
+                          placeholder="1234 5678 9012 3456"
+                          value={form.stripeCardNumber || ''}
+                          onChange={(e) => update('stripeCardNumber', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label>Ngày hết hạn</label>
+                        <input
+                          type="text"
+                          placeholder="MM/YY"
+                          value={form.stripeExpiry || ''}
+                          onChange={(e) => update('stripeExpiry', e.target.value)}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Mã bảo mật (CVC)</label>
+                        <input
+                          type="text"
+                          placeholder="123"
+                          value={form.stripeCvv || ''}
+                          onChange={(e) => update('stripeCvv', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Bảng tính tổng tiền */}
@@ -277,9 +468,15 @@ export default function OrderModal({
                     <span>{installSubtotal.toLocaleString('vi-VN')} đ</span>
                   </div>
                 )}
+                {discountPreview > 0 && (
+                  <div className="order-pricing-row">
+                    <span>Giảm giá ({form.promoCode.trim().toUpperCase()}):</span>
+                    <span>-{discountPreview.toLocaleString('vi-VN')} đ</span>
+                  </div>
+                )}
                 <div className="order-pricing-row order-pricing-row--total">
                   <span>Tổng tiền thanh toán:</span>
-                  <strong>{totalAmount.toLocaleString('vi-VN')} đ</strong>
+                  <strong>{(totalAmount - discountPreview).toLocaleString('vi-VN')} đ</strong>
                 </div>
               </div>
 

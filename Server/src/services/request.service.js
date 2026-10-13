@@ -16,6 +16,7 @@ const TRANSITIONS = { assigned: 'in_progress', in_progress: 'done' }
 
 const requestsCol = () => firestore.collection('requests')
 const requestDoc = (id) => firestore.collection('requests').doc(id)
+const requestsRef = () => db.ref('requests')
 const requestRtdbRef = (id) => db.ref(`requests/${id}`)
 
 const badRequest = (message) => Object.assign(new Error(message), { status: 400 })

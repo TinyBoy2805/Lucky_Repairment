@@ -321,21 +321,8 @@ export async function seedServicesIfEmpty() {
 }
 
 /** Lấy danh sách dịch vụ sửa chữa từ Cloud Firestore */
-export async function listRepairServices({ category, search } = {}) {
+export async function listRepairServices({ category, search, sort } = {}) {
   let list = await seedServicesIfEmpty()
-
-  // Sắp xếp theo thứ tự hiển thị ổn định
-  const initialOrder = INITIAL_SERVICES.map((s) => s.id)
-  list.sort((a, b) => {
-    const idxA = initialOrder.indexOf(a.id)
-    const idxB = initialOrder.indexOf(b.id)
-    if (idxA !== -1 && idxB !== -1) return idxA - idxB
-    return (a.id || '').localeCompare(b.id || '')
-  })
-
-  if (category && category !== 'all') {
-    list = list.filter((s) => s.category === category)
-  }
 
   if (search) {
     const term = String(search).trim().toLowerCase()
@@ -345,6 +332,25 @@ export async function listRepairServices({ category, search } = {}) {
         (s.shortDesc || '').toLowerCase().includes(term) ||
         (s.categoryName || '').toLowerCase().includes(term),
     )
+  }
+
+  if (category && category !== 'all') {
+    list = list.filter((s) => s.category === category)
+  }
+
+  // Sắp xếp theo giá khởi điểm, mặc định giữ thứ tự hiển thị ổn định
+  if (sort === 'price_asc') {
+    list.sort((a, b) => (Number(a.startingPrice) || 0) - (Number(b.startingPrice) || 0))
+  } else if (sort === 'price_desc') {
+    list.sort((a, b) => (Number(b.startingPrice) || 0) - (Number(a.startingPrice) || 0))
+  } else {
+    const initialOrder = INITIAL_SERVICES.map((s) => s.id)
+    list.sort((a, b) => {
+      const idxA = initialOrder.indexOf(a.id)
+      const idxB = initialOrder.indexOf(b.id)
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB
+      return (a.id || '').localeCompare(b.id || '')
+    })
   }
 
   return list
