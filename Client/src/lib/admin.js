@@ -1,7 +1,7 @@
 import { api } from './api.js'
 import { getToken } from './firebase.js'
 import { buildQuery } from './query.js'
-import { productsApi } from './products.js'
+import { servicesApi } from './services.js'
 
 export const adminApi = {
   stats: async (range = 'all') =>
@@ -23,11 +23,11 @@ export const adminApi = {
     remove: async (id) => api.delete(`/api/categories/${id}`, await getToken()),
   },
 
-  products: {
-    list: (params = {}) => productsApi.list(params),
-    create: (data) => productsApi.create(data),
-    update: (id, data) => productsApi.update(id, data),
-    remove: (id) => productsApi.remove(id),
+  services: {
+    list: (params = {}) => servicesApi.list(params),
+    create: (data) => servicesApi.create(data),
+    update: (id, data) => servicesApi.update(id, data),
+    remove: (id) => servicesApi.remove(id),
   },
 
   reports: {

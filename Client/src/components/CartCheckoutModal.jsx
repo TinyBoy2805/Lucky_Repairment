@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useCart } from '../context/useCart.js'
-import { ordersApi, paymentsApi } from '../lib/products.js'
+import { ordersApi, paymentsApi } from '../lib/orders.js'
 import { computeDiscount, isValidPromoCode, normalizePromoCode } from '../lib/promo.js'
 import { fmtMoney } from '../lib/format.js'
 
 const PAYMENT_METHOD_LABEL = {
-  cod: 'Thanh toán khi nhận hàng / nghiệm thu (COD)',
+  cod: 'Thanh toán sau khi nghiệm thu (COD)',
   momo: 'Ví điện tử MoMo (QR)',
   zalopay: 'Ví ZaloPay (QR)',
   stripe: 'Thẻ quốc tế (Stripe)',
@@ -33,10 +33,7 @@ export default function CartCheckoutModal({ isOpen, items, user, onClose, onOrde
 
   if (!isOpen) return null
 
-  const totalAmount = items.reduce((sum, item) => {
-    const install = item.includeInstallation ? item.installationFee : 0
-    return sum + (item.price + install) * item.quantity
-  }, 0)
+  const totalAmount = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
 
   const discountPreview = computeDiscount(form.promoCode, totalAmount)
   const promoCode = normalizePromoCode(form.promoCode)
@@ -76,11 +73,8 @@ export default function CartCheckoutModal({ isOpen, items, user, onClose, onOrde
           productName: item.productName,
           productImage: item.productImage,
           category: item.category,
-          brand: item.brand,
           price: item.price,
           quantity: item.quantity,
-          includeInstallation: item.includeInstallation,
-          installationFee: item.includeInstallation ? item.installationFee : 0,
         })),
         promoCode,
         discountAmount,
@@ -145,16 +139,16 @@ export default function CartCheckoutModal({ isOpen, items, user, onClose, onOrde
                 <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
-            <h3 className="order-success__title">Đặt Hàng Thành Công!</h3>
+            <h3 className="order-success__title">Đặt Dịch Vụ Thành Công!</h3>
             <p className="order-success__desc">
               Cảm ơn quý khách. Kỹ thuật viên sẽ liên hệ qua số điện thoại{' '}
-              <strong>{createdOrder.phone}</strong> trong vòng 15 phút để xác nhận thời gian giao và
-              lắp đặt.
+              <strong>{createdOrder.phone}</strong> trong vòng 15 phút để xác nhận thời gian đến
+              sửa chữa.
             </p>
 
             <div className="order-success__info">
               <div>
-                <span>Mã đơn hàng:</span>
+                <span>Mã đơn dịch vụ:</span>
                 <strong>#{createdOrder.id}</strong>
               </div>
               <div>
@@ -232,11 +226,11 @@ export default function CartCheckoutModal({ isOpen, items, user, onClose, onOrde
             <div className="order-success__actions">
               {user ? (
                 <Link to="/customer" className="btn btn--primary" onClick={handleClose}>
-                  Xem đơn hàng trong tài khoản
+                  Xem đơn dịch vụ trong tài khoản
                 </Link>
               ) : (
                 <button type="button" className="btn btn--primary" onClick={handleClose}>
-                  Tiếp tục xem sản phẩm
+                  Tiếp tục chọn dịch vụ
                 </button>
               )}
             </div>
@@ -244,8 +238,8 @@ export default function CartCheckoutModal({ isOpen, items, user, onClose, onOrde
         ) : (
           <div className="order-modal__body">
             <div className="order-modal__header">
-              <h3>Xác Nhận Đặt Hàng ({items.length} sản phẩm)</h3>
-              <p>Vui lòng điền thông tin để nhân viên liên hệ giao hàng & lắp đặt tận nơi.</p>
+              <h3>Xác Nhận Đặt Dịch Vụ ({items.length} dịch vụ)</h3>
+              <p>Vui lòng điền thông tin để kỹ thuật viên liên hệ và đến tận nơi sửa chữa.</p>
             </div>
 
             {submitError && (
@@ -254,7 +248,7 @@ export default function CartCheckoutModal({ isOpen, items, user, onClose, onOrde
               </div>
             )}
 
-            {/* Danh sách sản phẩm trong đơn */}
+            {/* Danh sách dịch vụ trong đơn */}
             <div className="order-summary-box">
               <ul className="cart-list cart-list--compact">
                 {items.map((item) => (
@@ -268,17 +262,9 @@ export default function CartCheckoutModal({ isOpen, items, user, onClose, onOrde
                     </div>
                     <div className="cart-item__info">
                       <div className="cart-item__name">{item.productName}</div>
-                      <div className="cart-item__meta">
-                        Số lượng: <strong>x{item.quantity}</strong>
-                        {item.includeInstallation && ' • kèm thợ lắp đặt'}
-                      </div>
+                      <div className="cart-item__meta">Dịch vụ sửa chữa</div>
                     </div>
-                    <div className="cart-item__total">
-                      {fmtMoney(
-                        item.quantity *
-                          (item.price + (item.includeInstallation ? item.installationFee : 0)),
-                      )}
-                    </div>
+                    <div className="cart-item__total">{fmtMoney(item.price * item.quantity)}</div>
                   </li>
                 ))}
               </ul>
@@ -317,7 +303,7 @@ export default function CartCheckoutModal({ isOpen, items, user, onClose, onOrde
                 </div>
 
                 <div className="field">
-                  <label htmlFor="cartAddress">Địa chỉ giao hàng & lắp đặt *</label>
+                  <label htmlFor="cartAddress">Địa chỉ cần sửa chữa *</label>
                   <div className="field__control">
                     <input
                       id="cartAddress"
@@ -347,7 +333,7 @@ export default function CartCheckoutModal({ isOpen, items, user, onClose, onOrde
                   <label>Phương thức thanh toán</label>
                   <div className="order-payment-options">
                     {[
-                      ['cod', 'Thanh toán khi nhận hàng / nghiệm thu (COD)', 'Kiểm tra hàng hoặc lắp đặt hoàn chỉnh mới thanh toán tiền mặt'],
+                      ['cod', 'Thanh toán sau khi nghiệm thu (COD)', 'Kiểm tra, nghiệm thu hoàn chỉnh mới thanh toán tiền mặt'],
                       ['momo', 'MoMo / ZaloPay (Quét mã QR)', 'Quét mã QR để thanh toán qua ví điện tử MoMo hoặc ZaloPay'],
                       ['zalopay', 'ZaloPay (Quét mã QR)', 'Thanh toán nhanh bằng ví ZaloPay'],
                       ['stripe', 'Thẻ credit/debit (Stripe)', 'Thanh toán sécure qua cổng Stripe'],
@@ -389,7 +375,7 @@ export default function CartCheckoutModal({ isOpen, items, user, onClose, onOrde
               {/* Bảng tính tổng tiền */}
               <div className="order-pricing-summary">
                 <div className="order-pricing-row">
-                  <span>Tạm tính ({items.length} sản phẩm):</span>
+                  <span>Tạm tính ({items.length} dịch vụ):</span>
                   <span>{fmtMoney(totalAmount)}</span>
                 </div>
                 {discountPreview > 0 && (

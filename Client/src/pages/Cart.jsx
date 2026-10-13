@@ -6,8 +6,7 @@ import CartCheckoutModal from '../components/CartCheckoutModal.jsx'
 import { fmtMoney } from '../lib/format.js'
 
 export default function Cart() {
-  const { items, totalAmount, totalItems, removeItem, updateQuantity, setInstallation } =
-    useCart()
+  const { items, totalAmount, totalItems, removeItem } = useCart()
   const { user } = useAuth()
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
 
@@ -16,8 +15,8 @@ export default function Cart() {
       <div className="page">
         <div className="home-container" style={{ maxWidth: 720, margin: '0 auto' }}>
           <header className="page__header">
-            <h1>Giỏ hàng</h1>
-            <p>Các thiết bị bạn đã chọn sẽ hiển thị tại đây.</p>
+            <h1>Giỏ dịch vụ</h1>
+            <p>Các dịch vụ sửa chữa bạn đã chọn sẽ hiển thị tại đây.</p>
           </header>
           <div className="card" style={{ textAlign: 'center', padding: '60px 20px' }}>
             <div className="cart-empty-icon" aria-hidden="true">
@@ -28,10 +27,10 @@ export default function Cart() {
               </svg>
             </div>
             <p className="card__empty" style={{ marginBottom: 16 }}>
-              Giỏ hàng của bạn đang trống.
+              Giỏ dịch vụ của bạn đang trống.
             </p>
-            <Link to="/products" className="btn btn--primary">
-              Khám phá thiết bị điện nước
+            <Link to="/services" className="btn btn--primary">
+              Khám phá dịch vụ sửa chữa
             </Link>
           </div>
         </div>
@@ -43,100 +42,67 @@ export default function Cart() {
     <div className="page">
       <div className="home-container" style={{ maxWidth: 1000, margin: '0 auto' }}>
         <header className="page__header">
-          <h1>Giỏ hàng ({totalItems} sản phẩm)</h1>
-          <p>Kiểm tra lại danh sách và tiến hành đặt mua.</p>
+          <h1>Giỏ dịch vụ ({totalItems} dịch vụ)</h1>
+          <p>Kiểm tra lại danh sách dịch vụ và tiến hành đặt lịch.</p>
         </header>
 
         <section className="card">
           <ul className="cart-list">
-            {items.map((item) => {
-              const lineTotal =
-                item.quantity * (item.price + (item.includeInstallation ? item.installationFee : 0))
+            {items.map((item) => (
+              <li key={item.key} className="cart-item">
+                <Link to={`/services/${item.productId}`} className="cart-item__thumb">
+                  {item.productImage ? (
+                    <img src={item.productImage} alt={item.productName} />
+                  ) : (
+                    <span>{item.productName?.charAt(0)}</span>
+                  )}
+                </Link>
 
-              return (
-                <li key={item.key} className="cart-item">
-                  <Link to={`/products/${item.productId}`} className="cart-item__thumb">
-                    {item.productImage ? (
-                      <img src={item.productImage} alt={item.productName} />
-                    ) : (
-                      <span>{item.productName?.charAt(0)}</span>
-                    )}
+                <div className="cart-item__info">
+                  <Link to={`/services/${item.productId}`} className="cart-item__name">
+                    {item.productName}
                   </Link>
-
-                  <div className="cart-item__info">
-                    <Link to={`/products/${item.productId}`} className="cart-item__name">
-                      {item.productName}
-                    </Link>
-                    <div className="cart-item__meta">
-                      Đơn giá: <strong>{fmtMoney(item.price)}</strong>
-                      {item.installationFee > 0 && (
-                        <label className="cart-item__install">
-                          <input
-                            type="checkbox"
-                            checked={item.includeInstallation}
-                            onChange={(e) => setInstallation(item.key, e.target.checked)}
-                          />
-                          Thợ lắp đặt (+{item.installationFee.toLocaleString('vi-VN')} đ)
-                        </label>
-                      )}
-                    </div>
+                  <div className="cart-item__meta">
+                    Giá tham khảo: <strong>{fmtMoney(item.price)}</strong>
                   </div>
+                </div>
 
-                  <div className="cart-item__qty">
-                    <button
-                      type="button"
-                      className="product-qty-btn"
-                      onClick={() => updateQuantity(item.key, item.quantity - 1)}
-                      disabled={item.quantity <= 1}
-                    >
-                      −
-                    </button>
-                    <span className="product-qty-val">{item.quantity}</span>
-                    <button
-                      type="button"
-                      className="product-qty-btn"
-                      onClick={() => updateQuantity(item.key, item.quantity + 1)}
-                    >
-                      +
-                    </button>
-                  </div>
+                <div className="cart-item__total">{fmtMoney(item.price)}</div>
 
-                  <div className="cart-item__total">{fmtMoney(lineTotal)}</div>
-
-                  <button
-                    type="button"
-                    className="cart-item__remove"
-                    onClick={() => removeItem(item.key)}
-                    aria-label={`Xoá ${item.productName} khỏi giỏ`}
-                  >
-                    ✕
-                  </button>
-                </li>
-              )
-            })}
+                <button
+                  type="button"
+                  className="cart-item__remove"
+                  onClick={() => removeItem(item.key)}
+                  aria-label={`Xoá ${item.productName} khỏi giỏ`}
+                >
+                  ✕
+                </button>
+              </li>
+            ))}
           </ul>
 
           <div className="cart-summary">
             <div className="cart-summary__row">
-              <span>Tổng cộng:</span>
+              <span>Tạm tính:</span>
               <strong>{fmtMoney(totalAmount)}</strong>
             </div>
+            <p className="cart-summary__hint">
+              Giá hiển thị là giá tham khảo. Thợ sẽ khảo sát và báo giá chính xác trước khi
+              tiến hành sửa chữa.
+            </p>
             <button
               type="button"
               className="btn btn--primary btn--lg btn--block"
               onClick={() => setIsCheckoutOpen(true)}
             >
-              Tiến hành đặt hàng
+              Tiến hành đặt dịch vụ
             </button>
-            <p className="cart-summary__note">
-              Phương thức thanh toán: COD, MoMo/ZaloPay (QR) hoặc thẻ qua Stripe.
-            </p>
           </div>
         </section>
 
-        <div style={{ marginTop: 12 }}>
-          <Link to="/products" className="form__link">
-            ← Tiếp tục mua sắm
+        <div style={{ marginTop: 16 }}>
+          <Link to="/services" className="btn btn--outline btn--sm">
+            ← Chọn thêm dịch vụ
           </Link>
         </div>
       </div>

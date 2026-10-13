@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import ServiceBookingModal from '../components/ServiceBookingModal.jsx'
 import { servicesApi } from '../lib/services.js'
+import { useCart } from '../context/useCart.js'
 import { useDebounced } from '../lib/query.js'
 
 export default function Services() {
+  const { addItem } = useCart()
   const [services, setServices] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -168,12 +170,13 @@ export default function Services() {
                 </div>
 
                 <div className="service-item-card__foot">
-                  <Link
-                    to={`/services/${srv.id}`}
+                  <button
+                    type="button"
                     className="btn btn--outline btn--sm"
+                    onClick={() => addItem(srv)}
                   >
-                    Xem chi tiết
-                  </Link>
+                    Thêm vào giỏ
+                  </button>
                   <button
                     type="button"
                     className="btn btn--primary btn--sm"

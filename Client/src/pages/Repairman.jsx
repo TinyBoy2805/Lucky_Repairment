@@ -4,7 +4,8 @@ import Field from '../components/Field.jsx'
 import StatusBadge from '../components/StatusBadge.jsx'
 import { useAuth } from '../context/useAuth.js'
 import { requestsApi } from '../lib/requests.js'
-import { ordersApi, productsApi } from '../lib/products.js'
+import { ordersApi } from '../lib/orders.js'
+import { servicesApi } from '../lib/services.js'
 import { walletApi } from '../lib/wallet.js'
 import { repairmanApi } from '../lib/repairman.js'
 import { fmtDate, fmtMoney } from '../lib/format.js'
@@ -13,7 +14,7 @@ const TABS = [
   { key: 'requests', label: 'Việc sửa' },
   { key: 'orders', label: 'Đơn hàng' },
   { key: 'revenue', label: 'Doanh thu' },
-  { key: 'products', label: 'Sản phẩm' },
+  { key: 'services', label: 'Dịch vụ' },
 ]
 
 const ORDER_STATUS = {
@@ -26,24 +27,24 @@ const ORDER_STATUS = {
 }
 
 const CATEGORY_OPTIONS = [
-  { value: 'electric', label: 'Thiết bị điện' },
-  { value: 'water', label: 'Thiết bị nước' },
+  { value: 'electric', label: 'Sửa chữa điện' },
+  { value: 'water', label: 'Sửa chữa nước' },
 ]
 
-const emptyProduct = {
-  name: '',
+const categoryLabel = (value) =>
+  CATEGORY_OPTIONS.find((option) => option.value === value)?.label || 'Sửa chữa điện'
+
+const emptyService = {
+  title: '',
   category: 'electric',
-  brand: '',
-  price: '',
-  originalPrice: '',
+  startingPrice: '',
+  priceDisplay: '',
+  responseTime: '',
+  warranty: '',
   image: '',
   shortDesc: '',
   description: '',
-  installationFee: '',
-  inStock: true,
-  warranty: '',
-  specifications: '',
-  features: '',
+  signs: '',
 }
 
 /** Tách textarea (mỗi dòng một mục) thành mảng chuỗi. */
@@ -91,7 +92,7 @@ export default function Repairman() {
   const [requestsError, setRequestsError] = useState('')
   const [busyRequestId, setBusyRequestId] = useState(null)
 
-  // Đơn hàng thiết bị
+  // Đơn dịch vụ
   const [orders, setOrders] = useState([])
   const [ordersLoading, setOrdersLoading] = useState(true)
   const [ordersError, setOrdersError] = useState('')
@@ -107,16 +108,16 @@ export default function Repairman() {
   const [withdrawNotice, setWithdrawNotice] = useState('')
   const [withdrawError, setWithdrawError] = useState('')
 
-  // Sản phẩm
-  const [products, setProducts] = useState([])
-  const [productsLoading, setProductsLoading] = useState(true)
-  const [productsError, setProductsError] = useState('')
-  const [productForm, setProductForm] = useState(emptyProduct)
+  // Dịch vụ của thợ
+  const [services, setServices] = useState([])
+  const [servicesLoading, setServicesLoading] = useState(true)
+  const [servicesError, setServicesError] = useState('')
+  const [serviceForm, setServiceForm] = useState(emptyService)
   const [editingId, setEditingId] = useState(null)
-  const [productBusy, setProductBusy] = useState(false)
-  const [busyProductId, setBusyProductId] = useState(null)
-  const [productNotice, setProductNotice] = useState('')
-  const [productFormError, setProductFormError] = useState('')
+  const [serviceBusy, setServiceBusy] = useState(false)
+  const [busyServiceId, setBusyServiceId] = useState(null)
+  const [serviceNotice, setServiceNotice] = useState('')
+  const [serviceFormError, setServiceFormError] = useState('')
 
   const loadAvailability = async () => {
     try {
@@ -179,16 +180,16 @@ export default function Repairman() {
     }
   }
 
-  const loadProducts = async () => {
-    setProductsLoading(true)
-    setProductsError('')
+  const loadServices = async () => {
+    setServicesLoading(true)
+    setServicesError('')
     try {
-      const data = await productsApi.list({ ownerUid: 'mine' })
-      setProducts(data.products || [])
+      const data = await servicesApi.list({ ownerUid: 'mine' })
+      setServices(data.services || [])
     } catch (loadError) {
-      setProductsError(loadError.message)
+      setServicesError(loadError.message)
     } finally {
-      setProductsLoading(false)
+      setServicesLoading(false)
     }
   }
 
@@ -197,7 +198,7 @@ export default function Repairman() {
     loadRequests()
     loadOrders()
     loadRevenue()
-    loadProducts()
+    loadServices()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -268,107 +269,102 @@ export default function Repairman() {
     }
   }
 
-  const setProductField = (name, value) =>
-    setProductForm((prev) => ({ ...prev, [name]: value }))
+  const setServiceField = (name, value) =>
+    setServiceForm((prev) => ({ ...prev, [name]: value }))
 
-  const resetProductForm = () => {
-    setProductForm(emptyProduct)
+  const resetServiceForm = () => {
+    setServiceForm(emptyService)
     setEditingId(null)
-    setProductFormError('')
+    setServiceFormError('')
   }
 
-  const submitProduct = async (event) => {
+  const submitService = async (event) => {
     event.preventDefault()
 
-    if (!productForm.name.trim()) {
-      setProductFormError('Vui lòng nhập tên sản phẩm.')
+    if (!serviceForm.title.trim()) {
+      setServiceFormError('Vui lòng nhập tên dịch vụ.')
       return
     }
-    if (!Number(productForm.price) || Number(productForm.price) <= 0) {
-      setProductFormError('Vui lòng nhập giá bán hợp lệ (lớn hơn 0).')
+    if (!Number(serviceForm.startingPrice) || Number(serviceForm.startingPrice) <= 0) {
+      setServiceFormError('Vui lòng nhập giá khởi điểm hợp lệ (lớn hơn 0).')
       return
     }
 
+    const price = Number(serviceForm.startingPrice)
     const payload = {
-      name: productForm.name.trim(),
-      category: productForm.category,
-      brand: productForm.brand.trim() || 'Khác',
-      price: Number(productForm.price),
-      originalPrice: Number(productForm.originalPrice) || 0,
-      image: productForm.image.trim(),
-      shortDesc: productForm.shortDesc.trim(),
-      description: productForm.description.trim(),
-      installationFee: Number(productForm.installationFee) || 0,
-      inStock: Boolean(productForm.inStock),
-      warranty: productForm.warranty.trim(),
-      specifications: textToLines(productForm.specifications),
-      features: textToLines(productForm.features),
+      title: serviceForm.title.trim(),
+      category: serviceForm.category,
+      categoryName: categoryLabel(serviceForm.category),
+      startingPrice: price,
+      priceDisplay: serviceForm.priceDisplay.trim() || `Từ ${fmtMoney(price)}`,
+      responseTime: serviceForm.responseTime.trim(),
+      warranty: serviceForm.warranty.trim(),
+      image: serviceForm.image.trim(),
+      shortDesc: serviceForm.shortDesc.trim(),
+      description: serviceForm.description.trim(),
+      signs: textToLines(serviceForm.signs),
     }
 
-    setProductBusy(true)
-    setProductFormError('')
-    setProductNotice('')
+    setServiceBusy(true)
+    setServiceFormError('')
+    setServiceNotice('')
     try {
       if (editingId) {
-        await productsApi.update(editingId, payload)
-        setProductNotice('Đã cập nhật sản phẩm.')
+        await servicesApi.update(editingId, payload)
+        setServiceNotice('Đã cập nhật dịch vụ.')
       } else {
-        await productsApi.create(payload)
-        setProductNotice('Đã thêm sản phẩm mới.')
+        await servicesApi.create(payload)
+        setServiceNotice('Đã thêm dịch vụ mới.')
       }
-      resetProductForm()
-      await loadProducts()
+      resetServiceForm()
+      await loadServices()
     } catch (submitError) {
-      setProductFormError(submitError.message)
+      setServiceFormError(submitError.message)
     } finally {
-      setProductBusy(false)
+      setServiceBusy(false)
     }
   }
 
-  const startEditProduct = (product) => {
-    setEditingId(product.id)
-    setProductForm({
-      name: product.name || '',
-      category: product.category || 'electric',
-      brand: product.brand || '',
-      price: String(product.price ?? ''),
-      originalPrice: String(product.originalPrice ?? ''),
-      image: product.image || '',
-      shortDesc: product.shortDesc || '',
-      description: product.description || '',
-      installationFee: String(product.installationFee ?? ''),
-      inStock: product.inStock !== false,
-      warranty: product.warranty || '',
-      specifications: Array.isArray(product.specifications)
-        ? product.specifications
-            .map((item) =>
-              item && typeof item === 'object'
-                ? `${item.key ?? ''}: ${item.value ?? ''}`.trim()
-                : String(item),
+  const startEditService = (service) => {
+    setEditingId(service.id)
+    setServiceForm({
+      title: service.title || '',
+      category: service.category || 'electric',
+      startingPrice: String(service.startingPrice ?? ''),
+      priceDisplay: service.priceDisplay || '',
+      responseTime: service.responseTime || '',
+      warranty: service.warranty || '',
+      image: service.image || '',
+      shortDesc: service.shortDesc || '',
+      description: service.description || '',
+      signs: Array.isArray(service.signs)
+        ? service.signs
+            .map((sign) =>
+              sign && typeof sign === 'object' ? sign.text ?? sign.label ?? '' : String(sign),
             )
+            .filter(Boolean)
             .join('\n')
         : '',
-      features: Array.isArray(product.features) ? product.features.join('\n') : '',
     })
-    setProductFormError('')
-    setProductNotice('')
+    setServiceFormError('')
+    setServiceNotice('')
   }
 
-  const removeProduct = async (product) => {
-    if (!window.confirm(`Bạn có chắc muốn xoá sản phẩm "${product.name}"?`)) return
+  const removeService = async (service) => {
+    if (!window.confirm(`Bạn có chắc muốn xoá dịch vụ "${service.title}"?`)) return
 
-    setBusyProductId(product.id)
-    setProductFormError('')
-    setProductNotice('')
+    setBusyServiceId(service.id)
+    setServiceFormError('')
+    setServiceNotice('')
     try {
-      await productsApi.remove(product.id)
-      if (editingId === product.id) resetProductForm()
-      setProductNotice('Đã xoá sản phẩm.')
-      await loadProducts()
+      await servicesApi.remove(service.id)
+      if (editingId === service.id) resetServiceForm()
+      setServiceNotice('Đã xoá dịch vụ.')
+      await loadServices()
     } catch (removeError) {
-      setProductFormError(removeError.message)
+      setServiceFormError(removeError.message)
     } finally {
-      setBusyProductId(null)
+      setBusyServiceId(null)
     }
   }
 
@@ -398,7 +394,7 @@ export default function Repairman() {
                 ? `, ${user.displayName.trim().split(' ').slice(-1)[0]}`
                 : ''}
             </h1>
-            <p>Nhận việc sửa chữa, giao thiết bị và quản lý gian hàng.</p>
+            <p>Nhận việc sửa chữa, xử lý đơn dịch vụ và quản lý dịch vụ của bạn.</p>
           </div>
 
           <div className="admin-actions">
@@ -548,7 +544,7 @@ export default function Repairman() {
         {activeTab === 'orders' && (
           <section className="card">
             <div className="toolbar">
-              <h2 className="card__title">Đơn thiết bị ({visibleOrders.length})</h2>
+              <h2 className="card__title">Đơn dịch vụ ({visibleOrders.length})</h2>
               <button
                 type="button"
                 className="btn btn--outline btn--sm"
@@ -606,7 +602,7 @@ export default function Repairman() {
                       </p>
                       <p className="req-item__meta">Địa chỉ: {order.address || '—'}</p>
                       <p className="req-item__meta">
-                        {itemCount} sản phẩm • Tổng: <strong>{fmtMoney(total)}</strong>
+                        {itemCount} dịch vụ • Tổng: <strong>{fmtMoney(total)}</strong>
                       </p>
 
                       <div className="req-item__foot">
@@ -769,39 +765,39 @@ export default function Repairman() {
           </>
         )}
 
-        {activeTab === 'products' && (
+        {activeTab === 'services' && (
           <div className="admin-cols">
             <section className="card">
-              <h2 className="card__title">{editingId ? 'Sửa sản phẩm' : 'Thêm sản phẩm'}</h2>
+              <h2 className="card__title">{editingId ? 'Sửa dịch vụ' : 'Thêm dịch vụ'}</h2>
 
-              {productFormError && (
+              {serviceFormError && (
                 <div className="alert alert--error" role="alert">
-                  <span>{productFormError}</span>
+                  <span>{serviceFormError}</span>
                 </div>
               )}
-              {productNotice && (
+              {serviceNotice && (
                 <div className="alert alert--success" role="status">
-                  <span>{productNotice}</span>
+                  <span>{serviceNotice}</span>
                 </div>
               )}
 
-              <form className="form" onSubmit={submitProduct} noValidate>
+              <form className="form" onSubmit={submitService} noValidate>
                 <Field
-                  id="rm-product-name"
-                  label="Tên sản phẩm *"
-                  value={productForm.name}
-                  onChange={(event) => setProductField('name', event.target.value)}
-                  placeholder="VD: Aptomat chống giật Panasonic RCBO 32A"
+                  id="rm-service-title"
+                  label="Tên dịch vụ *"
+                  value={serviceForm.title}
+                  onChange={(event) => setServiceField('title', event.target.value)}
+                  placeholder="VD: Sửa chữa điện chập, mất điện cục bộ"
                 />
 
                 <div className="field">
-                  <label htmlFor="rm-product-category">Danh mục</label>
+                  <label htmlFor="rm-service-category">Danh mục</label>
                   <div className="field__control">
                     <select
-                      id="rm-product-category"
+                      id="rm-service-category"
                       className="admin-select"
-                      value={productForm.category}
-                      onChange={(event) => setProductField('category', event.target.value)}
+                      value={serviceForm.category}
+                      onChange={(event) => setServiceField('category', event.target.value)}
                     >
                       {CATEGORY_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>
@@ -812,133 +808,99 @@ export default function Repairman() {
                   </div>
                 </div>
 
-                <Field
-                  id="rm-product-brand"
-                  label="Thương hiệu"
-                  value={productForm.brand}
-                  onChange={(event) => setProductField('brand', event.target.value)}
-                  placeholder="VD: Panasonic"
-                />
+                <div className="form__grid">
+                  <Field
+                    id="rm-service-price"
+                    label="Giá khởi điểm (đ) *"
+                    type="number"
+                    min="0"
+                    value={serviceForm.startingPrice}
+                    onChange={(event) => setServiceField('startingPrice', event.target.value)}
+                    placeholder="VD: 200000"
+                  />
+                  <Field
+                    id="rm-service-price-display"
+                    label="Hiển thị giá"
+                    value={serviceForm.priceDisplay}
+                    onChange={(event) => setServiceField('priceDisplay', event.target.value)}
+                    placeholder="Để trống để tự tạo"
+                  />
+                </div>
+
+                <div className="form__grid">
+                  <Field
+                    id="rm-service-response"
+                    label="Thời gian có mặt"
+                    value={serviceForm.responseTime}
+                    onChange={(event) => setServiceField('responseTime', event.target.value)}
+                    placeholder="VD: 15 - 30 phút"
+                  />
+                  <Field
+                    id="rm-service-warranty"
+                    label="Bảo hành"
+                    value={serviceForm.warranty}
+                    onChange={(event) => setServiceField('warranty', event.target.value)}
+                    placeholder="VD: 6 tháng"
+                  />
+                </div>
 
                 <Field
-                  id="rm-product-price"
-                  label="Giá bán (đ) *"
-                  type="number"
-                  min="0"
-                  value={productForm.price}
-                  onChange={(event) => setProductField('price', event.target.value)}
-                  placeholder="VD: 385000"
-                />
-
-                <Field
-                  id="rm-product-original"
-                  label="Giá gốc (đ)"
-                  type="number"
-                  min="0"
-                  value={productForm.originalPrice}
-                  onChange={(event) => setProductField('originalPrice', event.target.value)}
-                  placeholder="VD: 450000"
-                />
-
-                <Field
-                  id="rm-product-install"
-                  label="Phí thợ lắp đặt (đ)"
-                  type="number"
-                  min="0"
-                  value={productForm.installationFee}
-                  onChange={(event) => setProductField('installationFee', event.target.value)}
-                  placeholder="VD: 100000"
-                />
-
-                <Field
-                  id="rm-product-image"
+                  id="rm-service-image"
                   label="Ảnh (URL)"
-                  value={productForm.image}
-                  onChange={(event) => setProductField('image', event.target.value)}
+                  value={serviceForm.image}
+                  onChange={(event) => setServiceField('image', event.target.value)}
                   placeholder="https://..."
                 />
 
                 <div className="field">
-                  <label htmlFor="rm-product-short">Mô tả ngắn</label>
+                  <label htmlFor="rm-service-short">Mô tả ngắn</label>
                   <div className="field__control">
                     <textarea
-                      id="rm-product-short"
+                      id="rm-service-short"
                       rows="2"
-                      value={productForm.shortDesc}
-                      onChange={(event) => setProductField('shortDesc', event.target.value)}
+                      value={serviceForm.shortDesc}
+                      onChange={(event) => setServiceField('shortDesc', event.target.value)}
                     />
                   </div>
                 </div>
 
                 <div className="field">
-                  <label htmlFor="rm-product-desc">Mô tả chi tiết</label>
+                  <label htmlFor="rm-service-desc">Mô tả chi tiết</label>
                   <div className="field__control">
                     <textarea
-                      id="rm-product-desc"
+                      id="rm-service-desc"
                       rows="4"
-                      value={productForm.description}
-                      onChange={(event) => setProductField('description', event.target.value)}
+                      value={serviceForm.description}
+                      onChange={(event) => setServiceField('description', event.target.value)}
                     />
                   </div>
                 </div>
 
-                <Field
-                  id="rm-product-warranty"
-                  label="Bảo hành"
-                  value={productForm.warranty}
-                  onChange={(event) => setProductField('warranty', event.target.value)}
-                  placeholder="VD: 24 tháng chính hãng"
-                />
-
                 <div className="field">
-                  <label htmlFor="rm-product-specs">Thông số kỹ thuật (mỗi dòng một mục)</label>
+                  <label htmlFor="rm-service-signs">Dấu hiệu sự cố (mỗi dòng một mục)</label>
                   <div className="field__control">
                     <textarea
-                      id="rm-product-specs"
+                      id="rm-service-signs"
                       rows="4"
-                      value={productForm.specifications}
-                      onChange={(event) => setProductField('specifications', event.target.value)}
-                      placeholder={'Thương hiệu: Panasonic\nCông suất: 125W'}
+                      value={serviceForm.signs}
+                      onChange={(event) => setServiceField('signs', event.target.value)}
+                      placeholder={'Aptomat nhảy liên tục\nỔ cắm bị đen, nóng chảy'}
                     />
                   </div>
-                </div>
-
-                <div className="field">
-                  <label htmlFor="rm-product-features">Đặc điểm nổi bật (mỗi dòng một mục)</label>
-                  <div className="field__control">
-                    <textarea
-                      id="rm-product-features"
-                      rows="3"
-                      value={productForm.features}
-                      onChange={(event) => setProductField('features', event.target.value)}
-                      placeholder={'Tự động ngắt khi quá tải\nChống rò điện giật'}
-                    />
-                  </div>
-                </div>
-
-                <div className="field">
-                  <label className="form__check">
-                    <input
-                      type="checkbox"
-                      checked={productForm.inStock}
-                      onChange={(event) => setProductField('inStock', event.target.checked)}
-                    />
-                    Còn hàng
-                  </label>
                 </div>
 
                 <div className="admin-actions">
-                  <button className="btn btn--primary" type="submit" disabled={productBusy}>
-                    {productBusy ? 'Đang lưu…' : editingId ? 'Lưu thay đổi' : 'Thêm sản phẩm'}
+                  <button className="btn btn--primary" type="submit" disabled={serviceBusy}>
+                    {serviceBusy ? 'Đang lưu…' : editingId ? 'Lưu thay đổi' : 'Thêm dịch vụ'}
                   </button>
                   {editingId && (
                     <button
                       className="btn btn--outline"
                       type="button"
-                      onClick={resetProductForm}
-                      disabled={productBusy}
+                      onClick={resetServiceForm}
+                      disabled={serviceBusy}
                     >
-                      Hủy
+                      Huỷ
                     </button>
                   )}
                 </div>
@@ -947,29 +909,29 @@ export default function Repairman() {
 
             <section className="card">
               <div className="toolbar">
-                <h2 className="card__title">Sản phẩm của tôi ({products.length})</h2>
+                <h2 className="card__title">Dịch vụ của tôi ({services.length})</h2>
               </div>
 
-              {productsError && (
+              {servicesError && (
                 <div className="alert alert--error" role="alert">
-                  <span>{productsError}</span>
+                  <span>{servicesError}</span>
                 </div>
               )}
 
-              {productsLoading ? (
+              {servicesLoading ? (
                 <p className="card__empty">Đang tải danh sách…</p>
-              ) : products.length === 0 ? (
-                <p className="card__empty">Bạn chưa đăng bán sản phẩm nào.</p>
+              ) : services.length === 0 ? (
+                <p className="card__empty">Bạn chưa tạo dịch vụ nào.</p>
               ) : (
                 <ul className="req-list">
-                  {products.map((product) => (
-                    <li key={product.id} className="req-item">
+                  {services.map((service) => (
+                    <li key={service.id} className="req-item">
                       <div className="req-item__top">
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                          {product.image && (
+                          {service.image && (
                             <img
-                              src={product.image}
-                              alt={product.name}
+                              src={service.image}
+                              alt={service.title}
                               style={{ width: 40, height: 40, borderRadius: 6, objectFit: 'cover' }}
                             />
                           )}
@@ -980,38 +942,35 @@ export default function Repairman() {
                               whiteSpace: 'nowrap',
                             }}
                           >
-                            {product.name}
+                            {service.title}
                           </strong>
                         </div>
-                        <span
-                          className={product.inStock ? 'status status--done' : 'status status--failed'}
-                        >
-                          {product.inStock ? 'Còn hàng' : 'Hết hàng'}
+                        <span className="chip">
+                          {service.categoryName || categoryLabel(service.category)}
                         </span>
                       </div>
 
                       <p className="req-item__meta">
-                        {product.brand || 'Khác'} ·{' '}
-                        {CATEGORY_OPTIONS.find((option) => option.value === product.category)?.label ||
-                          'Khác'}{' '}
-                        · <strong>{fmtMoney(product.price)}</strong>
+                        <strong>{service.priceDisplay || fmtMoney(service.startingPrice)}</strong>
+                        {service.responseTime ? ` · Có mặt sau ${service.responseTime}` : ''}
+                        {service.warranty ? ` · Bảo hành ${service.warranty}` : ''}
                       </p>
 
                       <div className="req-item__foot">
-                        <span className="req-item__date">Cập nhật: {fmtDate(product.updatedAt)}</span>
+                        <span className="req-item__date">Cập nhật: {fmtDate(service.updatedAt)}</span>
                         <span className="admin-actions">
                           <button
                             className="btn btn--outline btn--sm"
                             type="button"
-                            onClick={() => startEditProduct(product)}
+                            onClick={() => startEditService(service)}
                           >
                             Sửa
                           </button>
                           <button
                             className="btn btn--outline btn--sm"
                             type="button"
-                            onClick={() => removeProduct(product)}
-                            disabled={busyProductId === product.id}
+                            onClick={() => removeService(service)}
+                            disabled={busyServiceId === service.id}
                           >
                             Xoá
                           </button>

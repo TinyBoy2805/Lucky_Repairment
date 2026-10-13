@@ -1,46 +1,57 @@
 # Lucky Repairment — Báo cáo chức năng & kiểm thử
 
-Nền tảng B2C đặt thợ sửa chữa điện–nước kèm bán thiết bị (Client: React + Vite, Server: Express + Firebase, nhánh `Phat`).
+Nền tảng B2C đặt thợ sửa chữa điện–nước (đặt lịch — báo giá — thanh toán — nghiệm thu — đánh giá). Client: React + Vite, Server: Express + Firebase, nhánh `Phat`.
+
+> **Kiến trúc:** đã bỏ gian hàng thiết bị. **Dịch vụ sửa chữa đóng vai trò "sản phẩm"**: xem chi tiết, thêm vào giỏ dịch vụ, đặt đơn dịch vụ, thanh toán, xem lịch sử; admin quản lý mọi dịch vụ, thợ quản lý dịch vụ của mình. Khách có **trang riêng, có style** cho chi tiết đơn và thông tin cá nhân.
 
 ## 1. Tính năng bắt buộc
 
 | Tính năng | Trạng thái | Ghi chú |
 | --- | --- | --- |
 | Đăng ký có gửi email xác nhận | ✅ | `register()` gọi `sendEmailVerification`; có màn hình "Xác nhận email", gửi lại email và kiểm tra trạng thái. (kiểm tra qua mã nguồn + build) |
-| Quản lý giỏ hàng | ✅ | Giỏ nhiều sản phẩm, lưu `localStorage` khóa `lucky_cart_v1`, badge ở Navbar, tuyến `/cart`, đặt đơn nhiều sản phẩm + mã khuyến mãi. (kiểm tra qua mã nguồn + build) |
+| Quản lý giỏ hàng | ✅ | Giỏ nhiều **dịch vụ sửa chữa**, lưu `localStorage` khóa `lucky_cart_v1`, badge ở Navbar, tuyến `/cart`, đặt đơn nhiều dịch vụ + mã khuyến mãi. |
+| Xem chi tiết dịch vụ (sản phẩm) | ✅ | Trang `/services/:id` đầy đủ mô tả, dấu hiệu, bảng giá; có "Thêm vào giỏ" + "Đặt lịch". |
+| Xem lịch sử mua / chi tiết đơn | ✅ | Khách `/customer` (tab "Yêu cầu sửa chữa" + "Đơn dịch vụ"); trang riêng `/customer/requests/:id` và `/customer/orders/:id` (có style, thanh tiến trình trạng thái, đánh giá khi hoàn thành, hủy đơn, thanh toán lại). |
+| Thông tin cá nhân | ✅ | Trang riêng `/profile` có style: avatar, sửa tên/SĐT, trạng thái + gửi lại email xác nhận (không còn modal). |
 | Thanh toán trực tuyến | ✅ | COD + MoMo/ZaloPay (QR) + Stripe (checkout, có chế độ mô phỏng khi chưa cấu hình key) |
 | Hủy đơn hàng (quy tắc A) | ✅ | Trước khi thợ đến: hoàn 100%. Sau khi thợ đến (`delivering`): giữ phí kiểm tra 60.000đ, hoàn phần còn lại. Đơn `completed`/`cancelled` bị chặn (409). |
 | Biểu đồ cột theo khoảng thời gian | ✅ | `GET /api/admin/stats?type=column&range=today\|7d\|30d\|90d\|all` |
 | Biểu đồ tròn | ✅ | `GET /api/admin/stats?type=pie&by=category\|brand` |
 | Quản lý cơ bản (admin) | ✅ | Người dùng, đơn hàng, danh mục, báo cáo, thanh toán, ví, lịch thợ, giá, đánh giá |
-| Admin quản lý sản phẩm | ✅ | Tạo/sửa/xóa sản phẩm đầy đủ trường; `PATCH` một phần chỉ cập nhật trường gửi lên và giữ nguyên phần còn lại (lỗi mất trường đã sửa và được kiểm chứng). |
-| Người bán (thợ) quản lý sản phẩm/doanh thu/đơn hàng | ✅ | Thợ chỉ quản lý sản phẩm của mình (`ownerUid`, `?ownerUid=mine`); nhận việc `pending→delivering→completed`; xem đơn của mình (kèm đơn chưa ai nhận) và doanh thu của mình. |
+| Admin quản lý dịch vụ | ✅ | Trang `/admin/services`: tạo/sửa/xóa dịch vụ đầy đủ trường; `PUT` một phần chỉ cập nhật trường gửi lên và giữ nguyên phần còn lại (đã kiểm chứng). |
+| Người bán (thợ) quản lý dịch vụ/doanh thu/đơn hàng | ✅ | Tab "Dịch vụ" trong `/repairman`: thợ chỉ quản lý dịch vụ của mình (`ownerUid`, `?ownerUid=mine`); nhận việc `pending→delivering→completed`; xem đơn của mình (kèm đơn chưa ai nhận) và doanh thu của mình. |
 
 > Ghi chú: Ngoài ra thợ có thể **bật/tắt sẵn sàng nhận việc** qua `GET/PUT /api/repairman/availability` (mặc định `false`), và xem **thống kê hoạt động** của mình qua `GET /api/repairman/stats` (đơn hoàn thành/đang giao, tổng đơn, doanh thu, số yêu cầu hoàn thành/đang xử lý).
 
 ## 2. Tính năng tự chọn (10)
 
 1. Đăng nhập Facebook
-2. Cập nhật thông tin cá nhân
+2. Cập nhật thông tin cá nhân (trang `/profile`)
 3. Hủy đơn hàng + hoàn tiền
-4. Đánh giá sản phẩm đã mua
+4. Đánh giá dịch vụ đã hoàn thành
 5. Báo cáo gian hàng / khách hàng
-6. Lọc sản phẩm theo danh mục / thương hiệu
-7. Sắp xếp theo giá (tăng/giảm) cho sản phẩm & dịch vụ
-8. Tìm kiếm sản phẩm / dịch vụ
+6. Lọc dịch vụ theo danh mục (điện / nước)
+7. Sắp xếp theo giá (tăng/giảm) cho dịch vụ
+8. Tìm kiếm dịch vụ
 9. Áp dụng mã khuyến mãi (PROMO10, SAVE10, WELCOME5)
-10. Hiển thị sản phẩm bán chạy trên trang chủ
+10. Hiển thị dịch vụ nổi bật trên trang chủ
 
 ## 3. Kiểm thử đã chạy
 
-- `Client`: `npm run lint` (oxlint) → sạch (không có cảnh báo). `npm run build` (vite) → thành công, 678 module; chỉ có cảnh báo chunk > 500 kB của Vite (không ảnh hưởng, được phép).
+- `Client`: `npm run lint` (oxlint) → không lỗi (còn 2 cảnh báo `set-state-in-effect` ở `RequestDetail.jsx`/`OrderDetail.jsx`, không ảnh hưởng). `npm run build` (vite) → thành công, 674 module; chỉ có cảnh báo chunk > 500 kB của Vite (không ảnh hưởng, được phép).
 - `Server`: khởi động OK, `GET /api/health` → `{"status":"ok","project":"lucky-repairment"}`.
 - **Smoke test end-to-end** (`npm run smoke-test`, `Server/scripts/smoke-test.js`, user `smoke*` trên RTDB thật, tự dọn): **93/93 PASS**.
   - Bộ smoke-test hiện có 93 kiểm tra.
   - Trước đó 3 kiểm tra không đạt do **kịch bản test** tạo "đơn pending thứ 2" thiếu `phone` (server yêu cầu số điện thoại) → 400, kéo theo 2 kiểm tra phụ thuộc id đơn này. Đã bổ sung `phone` vào kịch bản test; sau đó **93/93 đạt**. Đây là lệch giữa kịch bản test và ràng buộc dữ liệu sẵn có, **không phải lỗi mới của các tính năng vừa thêm**.
 - **Lỗi hồi quy đã sửa (Server)** — `Server/src/services/admin.service.js`: hàm `getSummary()` của bản viết lại đã **bỏ mất trường `openReports`** (client `AdminNav.jsx` dùng để hiện badge "Báo cáo") → đã **thêm lại** `openReports`.
 - **Lỗi Server đã sửa** — `Server/src/services/order.service.js`: `POST /api/orders` trước đây chỉ áp mã khuyến mãi khi client gửi kèm `discountAmount`, còn gửi mỗi `promoCode` thì bị bỏ qua (giảm giá = 0). Đã bổ sung bảng mã phía server (`PROMO10`/`SAVE10` = 10%, `WELCOME5` = 50.000đ) để **máy chủ tự tính giảm giá từ mã hợp lệ** (không phụ thuộc số tiền client gửi).
-- **Kiểm thử luồng mới** (script tạm `Server/scripts/_verify_new.mjs`, user cô lập `verify*`, đã chạy rồi xoá; chạy trên server `http://localhost:3001`): **40/40 PASS**.
+- **Kiểm thử quyền sở hữu DỊCH VỤ** (`Server/scripts/verify-services.js`, user cô lập `vsvc*`/`verify*`, tự khởi động app + tự dọn): **28/28 PASS**.
+  - Khách tạo dịch vụ → 403; admin tạo → 201, không có `ownerUid`, tự suy `categoryName`/`priceDisplay`; thợ tạo → 201 gán `ownerUid`/`ownerName`; danh mục sai → 400 ✅
+  - `GET /api/services?ownerUid=mine` (thợ) chỉ trả dịch vụ của thợ đó ✅
+  - `PUT`/`DELETE`: thợ khác → 403; chủ sở hữu → 200; admin sửa/xóa dịch vụ nền tảng → 200; sửa không tồn tại → 404; sửa một phần giữ nguyên `shortDesc`/`responseTime`, không đổi chủ sở hữu ✅
+- **Dọn dẹp sau kiểm thử**: script tự xoá dịch vụ + user `verify*` đã tạo (Firestore `services`, RTDB `users`, Firebase Auth).
+
+> **Lịch sử:** phần "Kiểm thử luồng mới 40/40" bên dưới được chạy trên mô hình **sản phẩm thiết bị cũ** (đã gỡ). Logic đơn/payment/khuyến mãi/hủy đơn/availability vẫn giữ nguyên và đã được kiểm chứng lại qua smoke test.
   - a) Đơn nhiều sản phẩm + `PROMO10`: 2 item, `discountAmount` = 10% `totalAmount` (làm tròn), `finalAmount = totalAmount - discountAmount` ✅
   - b) Admin CRUD + `PATCH` một phần chỉ `{ inStock:false }`: giữ nguyên `image`, `description`, `specifications`, `features`, `warranty`; xoá xong `GET` lại → 404 ✅
   - c) Quyền sở hữu: thợ tạo sản phẩm → `ownerUid` = uid của thợ; `?ownerUid=mine` chứa sản phẩm; thợ khác `PATCH`/`DELETE` → 403; admin `PATCH` → 200 ✅

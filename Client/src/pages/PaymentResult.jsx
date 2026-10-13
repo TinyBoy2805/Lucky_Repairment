@@ -19,7 +19,7 @@ export default function PaymentResult({ status = 'success' }) {
         <h1>{success ? 'Thanh toán thành công' : 'Thanh toán đã hủy'}</h1>
         <p>
           {success
-            ? 'Cảm ơn bạn! Giao dịch đã được ghi nhận. Kỹ thuật viên sẽ liên hệ xác nhận thời gian giao & lắp đặt.'
+            ? 'Cảm ơn bạn! Giao dịch đã được ghi nhận. Kỹ thuật viên sẽ liên hệ xác nhận thời gian đến sửa chữa.'
             : 'Giao dịch chưa hoàn tất. Bạn có thể thanh toán lại hoặc chọn hình thức thanh toán khác.'}
         </p>
       </header>
@@ -31,16 +31,16 @@ export default function PaymentResult({ status = 'success' }) {
       >
         <span>
           {success ? 'Thanh toán đã hoàn tất.' : 'Bạn đã hủy phiên thanh toán.'}
-          {orderId ? ` Mã đơn hàng: #${orderId}` : ''}
+          {orderId ? ` Mã đơn dịch vụ: #${orderId}` : ''}
         </span>
       </div>
 
       <div className="form__actions">
         <Link to="/customer" className="btn btn--primary">
-          Xem đơn hàng của tôi
+          Xem đơn dịch vụ của tôi
         </Link>
-        <Link to="/products" className="btn btn--outline">
-          Tiếp tục mua sắm
+        <Link to="/services" className="btn btn--outline">
+          Tiếp tục chọn dịch vụ
         </Link>
       </div>
     </div>

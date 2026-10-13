@@ -144,7 +144,7 @@ export async function getStats(range = 'all', from, to) {
   const productMap = {}
   for (const product of products) productMap[product.id] = product
 
-  const CATEGORY_LABEL = { electric: 'Thiết bị điện', water: 'Thiết bị nước' }
+  const CATEGORY_LABEL = { electric: 'Sửa chữa điện', water: 'Sửa chữa nước' }
   const categoryTotals = {}
   const brandTotals = {}
 
