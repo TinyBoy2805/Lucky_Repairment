@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import DashboardLayout from '../../layouts/DashboardLayout.jsx'
 import { ordersApi, paymentsApi } from '../../lib/orders.js'
+import { ratingsApi } from '../../lib/ratings.js'
 import { fmtMoney, fmtDate, fmtDateTime } from '../../lib/format.js'
 
 const ORDER_STATUS = {
@@ -53,6 +54,13 @@ export default function OrderDetail() {
   const [notice, setNotice] = useState('')
   const [actionError, setActionError] = useState('')
 
+  // Đánh giá đơn dịch vụ đã hoàn thành
+  const [rating, setRating] = useState(5)
+  const [comment, setComment] = useState('')
+  const [ratingBusy, setRatingBusy] = useState(false)
+  const [ratingError, setRatingError] = useState('')
+  const [ratingDone, setRatingDone] = useState(false)
+
   const loadOrder = async () => {
     setLoading(true)
     setError('')
@@ -97,6 +105,55 @@ export default function OrderDetail() {
       cancelled = true
     }
   }, [orderId])
+
+  // Kiểm tra đơn đã được đánh giá chưa (chỉ với đơn đã hoàn thành).
+  useEffect(() => {
+    if (!order || order.status !== 'completed') return
+    let cancelled = false
+
+    ratingsApi
+      .list({ orderId: order.id })
+      .then((data) => {
+        if (cancelled) return
+        const reviewed = (data?.ratings || []).some(
+          (item) => String(item.orderId) === String(order.id),
+        )
+        if (reviewed) setRatingDone(true)
+      })
+      .catch(() => {
+        // Không chặn giao diện nếu không kiểm tra được.
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [order])
+
+  const submitRating = async (event) => {
+    event.preventDefault()
+    if (ratingBusy || ratingDone) return
+
+    const score = Number(rating)
+    if (!Number.isInteger(score) || score < 1 || score > 5) {
+      setRatingError('Vui lòng chọn số sao từ 1 đến 5.')
+      return
+    }
+
+    setRatingBusy(true)
+    setRatingError('')
+    try {
+      await ratingsApi.create({ orderId: order.id, score, comment: comment.trim() })
+      setRatingDone(true)
+    } catch (submitError) {
+      if (submitError?.status === 409) {
+        setRatingDone(true)
+      } else {
+        setRatingError(submitError?.message || 'Gửi đánh giá thất bại. Vui lòng thử lại.')
+      }
+    } finally {
+      setRatingBusy(false)
+    }
+  }
 
   const handleCancel = async () => {
     if (!order) return
@@ -367,6 +424,75 @@ export default function OrderDetail() {
                   >
                     {actionBusy === 'cancel' ? 'Đang hủy…' : 'Hủy đơn'}
                   </button>
+                )}
+              </section>
+            )}
+
+            {order.status === 'completed' && (
+              <section className="rating-card">
+                <h2 className="rating-card__title">Đánh giá dịch vụ</h2>
+
+                {ratingDone ? (
+                  <div className="alert alert--success" role="status">
+                    <span>
+                      Cảm ơn bạn đã đánh giá dịch vụ. Phản hồi của bạn giúp chúng tôi
+                      phục vụ tốt hơn!
+                    </span>
+                  </div>
+                ) : (
+                  <form className="rating-form" onSubmit={submitRating} noValidate>
+                    <p className="rating-form__hint">
+                      Bạn thấy chất lượng dịch vụ lắp đặt / sửa chữa thế nào?
+                    </p>
+
+                    <div
+                      className="rating-stars"
+                      role="radiogroup"
+                      aria-label="Số sao đánh giá"
+                    >
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          role="radio"
+                          aria-checked={star === rating}
+                          aria-label={`${star} sao`}
+                          className={star <= rating ? 'rating-star is-active' : 'rating-star'}
+                          onClick={() => {
+                            setRating(star)
+                            setRatingError('')
+                          }}
+                        >
+                          ★
+                        </button>
+                      ))}
+                    </div>
+
+                    {ratingError && (
+                      <span className="field__error" role="alert">
+                        {ratingError}
+                      </span>
+                    )}
+
+                    <div className="field">
+                      <label htmlFor="order-rating-comment">Nhận xét</label>
+                      <div className="field__control">
+                        <textarea
+                          id="order-rating-comment"
+                          rows="3"
+                          placeholder="Chia sẻ cảm nhận về chất lượng dịch vụ…"
+                          value={comment}
+                          onChange={(event) => setComment(event.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form__actions">
+                      <button className="btn btn--primary" type="submit" disabled={ratingBusy}>
+                        {ratingBusy ? 'Đang gửi…' : 'Gửi đánh giá'}
+                      </button>
+                    </div>
+                  </form>
                 )}
               </section>
             )}

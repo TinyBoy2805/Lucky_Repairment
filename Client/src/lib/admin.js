@@ -4,8 +4,14 @@ import { buildQuery } from './query.js'
 import { servicesApi } from './services.js'
 
 export const adminApi = {
-  stats: async (range = 'all') =>
-    api.get(`/api/admin/stats${buildQuery({ range })}`, await getToken()),
+  /**
+   * Thống kê admin. Nhận chuỗi range ('all' | 'today' | '7d' | '30d' | '90d')
+   * hoặc object { range, from, to } để lọc theo khoảng ngày tuỳ chọn (epoch ms).
+   */
+  stats: async (params = 'all') => {
+    const query = typeof params === 'string' ? { range: params } : params
+    return api.get(`/api/admin/stats${buildQuery(query)}`, await getToken())
+  },
   summary: async () => api.get('/api/admin/summary', await getToken()),
 
   users: async (params = {}) => api.get(`/api/users${buildQuery(params)}`, await getToken()),

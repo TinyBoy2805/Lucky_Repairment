@@ -3,18 +3,85 @@ import { Link, useNavigate } from 'react-router-dom'
 import ServiceBookingModal from '../components/ServiceBookingModal.jsx'
 import { servicesApi } from '../lib/services.js'
 
+const EMPTY_HOME = { bestSellers: [], newest: [], mostViewed: [], recommended: [] }
+
+/** Thẻ dịch vụ dùng chung cho các mục trên trang chủ. */
+function HomeServiceCard({ service, onBook }) {
+  return (
+    <div className="service-item-card">
+      <div className="service-item-card__thumb">
+        <img src={service.image} alt={service.title} />
+        <span className="service-item-card__badge">
+          {service.category === 'electric' ? 'Điện' : 'Nước'}
+        </span>
+        <span className="service-item-card__badge-time">15–30 phút</span>
+      </div>
+
+      <div className="service-item-card__body">
+        <span className="service-item-card__cat-label">{service.categoryName}</span>
+        <h3 className="service-item-card__title">
+          <Link to={`/services/${service.id}`}>{service.title}</Link>
+        </h3>
+        <p className="service-item-card__desc">{service.shortDesc}</p>
+        <div className="service-item-card__price">
+          <span>Giá tham khảo:</span>
+          <strong>{service.priceDisplay}</strong>
+        </div>
+      </div>
+
+      <div className="service-item-card__foot">
+        <Link to={`/services/${service.id}`} className="btn btn--outline btn--sm">
+          Xem chi tiết
+        </Link>
+        <button
+          type="button"
+          className="btn btn--primary btn--sm"
+          onClick={() => onBook(service)}
+        >
+          Đặt lịch ngay
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/** Một khối dịch vụ trên trang chủ (ẩn nếu không có dữ liệu). */
+function HomeServiceSection({ title, desc, services, onBook }) {
+  if (!services || services.length === 0) return null
+  return (
+    <div style={{ marginBottom: 36 }}>
+      <div className="home-section__header">
+        <h3 className="home-section__title" style={{ fontSize: 22 }}>
+          {title}
+        </h3>
+        {desc && <p className="home-section__desc">{desc}</p>}
+      </div>
+      <div className="services-grid">
+        {services.map((service) => (
+          <HomeServiceCard key={service.id} service={service} onBook={onBook} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function Home() {
   const navigate = useNavigate()
-  const [featuredServices, setFeaturedServices] = useState([])
+  const [home, setHome] = useState(EMPTY_HOME)
   const [selectedService, setSelectedService] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   useEffect(() => {
     servicesApi
-      .list()
-      .then((data) => setFeaturedServices((data.services || []).slice(0, 4)))
-      .catch((err) => console.warn('Không thể tải dịch vụ nổi bật:', err))
+      .home()
+      .then((data) => setHome({ ...EMPTY_HOME, ...(data?.home || {}) }))
+      .catch((err) => console.warn('Không thể tải dịch vụ trang chủ:', err))
   }, [])
+
+  const openBooking = (service) => {
+    setSelectedService(service)
+    setIsModalOpen(true)
+  }
 
   const handleBookingClick = () => {
     const el = document.getElementById('services-featured')
@@ -123,60 +190,36 @@ export default function Home() {
       <section id="services" className="home-section">
         <div id="services-featured" className="home-container">
           <div className="home-section__header">
-            <h2 className="home-section__title">Dịch Vụ Sửa Chữa Tiêu Biểu</h2>
+            <h2 className="home-section__title">Dịch Vụ Sửa Chữa Nổi Bật</h2>
             <p className="home-section__desc">
               Kỹ thuật viên lành nghề có mặt sau 15–30 phút. Báo giá công khai trước khi làm, bảo hành dài hạn.
             </p>
           </div>
 
-          {featuredServices.length > 0 && (
-            <div className="services-grid" style={{ marginBottom: 36 }}>
-              {featuredServices.map((srv) => (
-                <div key={srv.id} className="service-item-card">
-                  <div className="service-item-card__thumb">
-                    <img src={srv.image} alt={srv.title} />
-                    <span className="service-item-card__badge">
-                      {srv.category === 'electric' ? 'Điện' : 'Nước'}
-                    </span>
-                    <span className="service-item-card__badge-time">
-                      15–30 phút
-                    </span>
-                  </div>
-
-                  <div className="service-item-card__body">
-                    <span className="service-item-card__cat-label">{srv.categoryName}</span>
-                    <h3 className="service-item-card__title">
-                      <Link to={`/services/${srv.id}`}>{srv.title}</Link>
-                    </h3>
-                    <p className="service-item-card__desc">{srv.shortDesc}</p>
-                    <div className="service-item-card__price">
-                      <span>Giá tham khảo:</span>
-                      <strong>{srv.priceDisplay}</strong>
-                    </div>
-                  </div>
-
-                  <div className="service-item-card__foot">
-                    <Link
-                      to={`/services/${srv.id}`}
-                      className="btn btn--outline btn--sm"
-                    >
-                      Xem chi tiết
-                    </Link>
-                    <button
-                      type="button"
-                      className="btn btn--primary btn--sm"
-                      onClick={() => {
-                        setSelectedService(srv)
-                        setIsModalOpen(true)
-                      }}
-                    >
-                      Đặt lịch ngay
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <HomeServiceSection
+            title="Dịch Vụ Bán Chạy Nhất"
+            desc="Được nhiều khách hàng lựa chọn và đặt lịch."
+            services={home.bestSellers}
+            onBook={openBooking}
+          />
+          <HomeServiceSection
+            title="Dịch Vụ Mới Nhất"
+            desc="Những dịch vụ vừa được cập nhật."
+            services={home.newest}
+            onBook={openBooking}
+          />
+          <HomeServiceSection
+            title="Dịch Vụ Xem Nhiều Nhất"
+            desc="Được khách hàng quan tâm nhiều nhất."
+            services={home.mostViewed}
+            onBook={openBooking}
+          />
+          <HomeServiceSection
+            title="Gợi Ý Cho Bạn"
+            desc="Dựa trên sở thích và lịch sử đặt dịch vụ."
+            services={home.recommended}
+            onBook={openBooking}
+          />
 
           <div style={{ textAlign: 'center' }}>
             <Link to="/services" className="btn btn--outline btn--lg">

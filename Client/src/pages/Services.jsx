@@ -110,6 +110,7 @@ export default function Services() {
               <option value="newest">Mới nhất</option>
               <option value="price-asc">Giá thấp đến cao</option>
               <option value="price-desc">Giá cao đến thấp</option>
+              <option value="sales">Bán chạy nhất</option>
             </select>
           </div>
         </div>

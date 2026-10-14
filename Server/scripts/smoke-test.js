@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
-import { auth, db } from '../src/config/firebase.js'
+import { auth, db, firestore } from '../src/config/firebase.js'
 
 // Smoke test end-to-end trên Realtime Database thật (có dọn dẹp sau khi chạy).
 // Chạy: npm run smoke-test
@@ -105,11 +105,13 @@ async function setupUser(user) {
 
 async function cleanup(created) {
   for (const id of created.requestIds) await db.ref(`requests/${id}`).remove()
+  for (const id of created.orderIds) await db.ref(`orders/${id}`).remove()
   for (const id of created.categoryIds) await db.ref(`categories/${id}`).remove()
   for (const id of created.ratingIds) await db.ref(`ratings/${id}`).remove()
   for (const id of created.paymentIds) await db.ref(`payments/${id}`).remove()
   for (const id of created.reportIds) await db.ref(`reports/${id}`).remove()
   for (const requestId of created.chatRequestIds) await db.ref(`chats/${requestId}`).remove()
+  for (const id of created.serviceIds) await firestore.collection('services').doc(id).delete()
 
   await db.ref(`schedules/${TEST_USERS.repairman.uid}`).remove()
   await db.ref(`wallets/${TEST_USERS.customer.uid}`).remove()
@@ -151,6 +153,8 @@ async function main() {
 
   const created = {
     requestIds: [],
+    orderIds: [],
+    serviceIds: [],
     categoryIds: [],
     ratingIds: [],
     paymentIds: [],
@@ -397,6 +401,176 @@ async function main() {
     res = await api('GET', '/api/reports/khong-ton-tai', { token: tokens.admin })
     check('báo cáo không tồn tại → 404', res.status === 404, res.status)
 
+    // ===== Dịch vụ (services) — tạo để test home / view / sort =====
+    section('DỊCH VỤ (SERVICES)')
+    const serviceId = `smoke-service-${Date.now()}`
+    res = await api('POST', '/api/services', {
+      token: tokens.customer,
+      body: { title: 'Smoke service', category: 'electric', startingPrice: 100000 },
+    })
+    check('customer tạo dịch vụ → 403', res.status === 403, res.status)
+
+    res = await api('POST', '/api/services', {
+      token: tokens.admin,
+      body: { id: serviceId, title: 'Smoke dịch vụ sửa chữa', category: 'electric', startingPrice: 100000 },
+    })
+    check('admin tạo dịch vụ → 201', res.status === 201 && res.data.service?.id === serviceId, res.status)
+    if (res.status === 201) created.serviceIds.push(serviceId)
+
+    res = await api('GET', `/api/services/${serviceId}`)
+    check('xem chi tiết dịch vụ (public) → 200', res.status === 200 && res.data.service?.id === serviceId, res.status)
+
+    res = await api('GET', '/api/services/khong-ton-tai-xyz')
+    check('dịch vụ không tồn tại → 404', res.status === 404, res.status)
+
+    res = await api('POST', `/api/services/${serviceId}/view`, { body: {} })
+    check('tăng lượt xem dịch vụ → 200 (views=1)', res.status === 200 && res.data.views === 1, res.data)
+
+    res = await api('POST', `/api/services/${serviceId}/view`, { body: {} })
+    check('tăng lượt xem lần 2 → views=2', res.status === 200 && res.data.views === 2, res.data)
+
+    res = await api('POST', '/api/services/khong-ton-tai-xyz/view', { body: {} })
+    check('tăng lượt xem dịch vụ không tồn tại → 404', res.status === 404, res.status)
+
+    // ===== Đơn dịch vụ (orders) + đánh giá đơn =====
+    section('ĐƠN DỊCH VỤ (ORDERS) + ĐÁNH GIÁ ĐƠN')
+    res = await api('POST', '/api/orders', {
+      token: tokens.customer,
+      body: {
+        receiverName: 'Smoke Customer',
+        phone: '0900000000',
+        address: '1 Test',
+        paymentMethod: 'cod',
+        items: [
+          { productId: serviceId, productName: 'Smoke dịch vụ', price: 100000, quantity: 999 },
+        ],
+      },
+    })
+    check(
+      'customer tạo đơn dịch vụ → 201 pending',
+      res.status === 201 && res.data.order?.status === 'pending',
+      res.status,
+    )
+    const orderId = res.data.order?.id
+    if (orderId) created.orderIds.push(orderId)
+
+    res = await api('POST', '/api/orders', {
+      token: tokens.customer,
+      body: {
+        receiverName: 'Thiếu SĐT',
+        address: '1 Test',
+        items: [{ productId: serviceId, productName: 'x', price: 1, quantity: 1 }],
+      },
+    })
+    check('tạo đơn thiếu SĐT → 400', res.status === 400, res.status)
+
+    res = await api('POST', '/api/orders', {
+      token: tokens.customer,
+      body: { receiverName: 'A', phone: '0900000000', address: '1 Test', items: [] },
+    })
+    check('tạo đơn không có dịch vụ → 400', res.status === 400, res.status)
+
+    res = await api('POST', '/api/orders', {
+      token: tokens.customer,
+      body: {
+        receiverName: 'A',
+        phone: '0900000000',
+        address: '1 Test',
+        paymentMethod: 'bitcoin',
+        items: [{ productId: serviceId, productName: 'x', price: 1, quantity: 1 }],
+      },
+    })
+    check('tạo đơn sai phương thức thanh toán → 400', res.status === 400, res.status)
+
+    res = await api('POST', '/api/ratings', { token: tokens.customer, body: { orderId, score: 5 } })
+    check('đánh giá đơn chưa completed → 409', res.status === 409, res.status)
+
+    res = await api('POST', '/api/ratings', { token: tokens.stranger, body: { orderId, score: 5 } })
+    check('người khác đánh giá đơn của customer → 403', res.status === 403, res.status)
+
+    res = await api('GET', `/api/orders/${orderId}`, { token: tokens.customer })
+    check('customer xem chi tiết đơn của mình → 200', res.status === 200 && res.data.order?.id === orderId, res.status)
+
+    res = await api('GET', `/api/orders/${orderId}`, { token: tokens.stranger })
+    check('người khác xem đơn → 403', res.status === 403, res.status)
+
+    res = await api('PATCH', `/api/orders/${orderId}`, { token: tokens.repairman, body: { status: 'delivering' } })
+    check('thợ nhận đơn → delivering', res.status === 200 && res.data.order?.status === 'delivering', res.data?.order?.status)
+
+    res = await api('PATCH', `/api/orders/${orderId}`, { token: tokens.repairman, body: { status: 'completed' } })
+    check('thợ hoàn thành đơn → completed', res.status === 200 && res.data.order?.status === 'completed', res.data?.order?.status)
+
+    res = await api('PATCH', `/api/orders/${orderId}/cancel`, { token: tokens.customer })
+    check('hủy đơn đã hoàn thành → 409', res.status === 409, res.status)
+
+    res = await api('POST', '/api/ratings', { token: tokens.customer, body: { orderId, score: 9 } })
+    check('đánh giá đơn điểm không hợp lệ → 400', res.status === 400, res.status)
+
+    res = await api('POST', '/api/ratings', { token: tokens.customer, body: { score: 5 } })
+    check('đánh giá thiếu orderId/requestId → 400', res.status === 400, res.status)
+
+    res = await api('POST', '/api/ratings', { token: tokens.customer, body: { orderId: 'khong-ton-tai', score: 5 } })
+    check('đánh giá đơn không tồn tại → 404', res.status === 404, res.status)
+
+    res = await api('POST', '/api/ratings', { token: tokens.customer, body: { orderId, score: 5, comment: 'dịch vụ tốt' } })
+    check('customer đánh giá đơn completed → 201', res.status === 201 && res.data.rating?.id, res.status)
+    const orderRatingId = res.data.rating?.id
+    if (orderRatingId) created.ratingIds.push(orderRatingId)
+
+    res = await api('POST', '/api/ratings', { token: tokens.customer, body: { orderId, score: 3 } })
+    check('đánh giá trùng đơn → 409', res.status === 409, res.status)
+
+    res = await api('GET', `/api/ratings?orderId=${orderId}`, { token: tokens.customer })
+    check('lọc đánh giá theo orderId → 200', res.status === 200 && res.data.ratings.some((r) => r.id === orderRatingId), res.status)
+
+    // ===== Trang chủ: 4 mục + sort theo lượt bán =====
+    section('TRANG CHỦ (HOME SECTIONS) + SORT LƯỢT BÁN')
+    res = await api('GET', '/api/services/home')
+    check(
+      'GET /api/services/home → 200 đủ 4 mục',
+      res.status === 200 &&
+        Array.isArray(res.data.home?.bestSellers) &&
+        Array.isArray(res.data.home?.newest) &&
+        Array.isArray(res.data.home?.mostViewed) &&
+        Array.isArray(res.data.home?.recommended),
+      res.status,
+    )
+
+    check(
+      'trang chủ: bán chạy chứa dịch vụ vừa đặt (qty 999)',
+      (res.data.home?.bestSellers || []).some((s) => s.id === serviceId),
+      (res.data.home?.bestSellers || []).map((s) => s.id),
+    )
+
+    check(
+      'trang chủ: mục xem nhiều sắp xếp giảm dần theo lượt xem',
+      (res.data.home?.mostViewed || []).every(
+        (item, index, arr) => index === 0 || (Number(arr[index - 1].views) || 0) >= (Number(item.views) || 0),
+      ),
+      (res.data.home?.mostViewed || []).map((s) => s.views),
+    )
+
+    res = await api('GET', `/api/services/${serviceId}`)
+    check(
+      'lượt xem được lưu vào dịch vụ (views=2)',
+      res.status === 200 && res.data.service?.views === 2,
+      res.data?.service?.views,
+    )
+
+    res = await api('GET', '/api/services?sort=sales', { token: tokens.customer })
+    check(
+      'sort=sales: dịch vụ bán chạy nhất đứng đầu',
+      res.status === 200 && res.data.services?.[0]?.id === serviceId,
+      res.data?.services?.slice(0, 3).map((s) => s.id),
+    )
+
+    res = await api('GET', '/api/services/home', { token: tokens.customer })
+    check(
+      'trang chủ: gợi ý không chứa dịch vụ vừa mua',
+      !(res.data.home?.recommended || []).some((s) => s.id === serviceId),
+      (res.data.home?.recommended || []).map((s) => s.id),
+    )
+
     section('QUẢN TRỊ')
     res = await api('GET', '/api/admin/stats', { token: tokens.customer })
     check('người thường xem thống kê → 403', res.status === 403, res.status)
@@ -432,6 +606,32 @@ async function main() {
 
     res = await api('GET', '/api/admin/summary', { token: tokens.customer })
     check('người thường xem tổng hợp → 403', res.status === 403, res.status)
+
+    section('THỐNG KÊ THEO KHOẢNG NGÀY')
+    const statsFrom = Date.now() - 24 * 60 * 60 * 1000
+    const statsTo = Date.now() + 24 * 60 * 60 * 1000
+
+    res = await api('GET', `/api/admin/stats?type=column&from=${statsFrom}&to=${statsTo}`, { token: tokens.admin })
+    check(
+      'biểu đồ cột khoảng tuỳ chọn → 200 có nhãn',
+      res.status === 200 && Array.isArray(res.data.labels) && res.data.labels.length >= 1,
+      res.status,
+    )
+    check(
+      'doanh thu khoảng tuỳ chọn bao gồm đơn vừa tạo',
+      res.data.stats?.orders?.revenueInRange >= 100000 * 999,
+      res.data?.stats?.orders?.revenueInRange,
+    )
+
+    res = await api('GET', `/api/admin/stats?type=column&from=${statsTo}&to=${statsFrom}`, { token: tokens.admin })
+    check(
+      'khoảng ngày đảo ngược (from > to) → 200, không nhãn',
+      res.status === 200 && res.data.labels.length === 0,
+      res.data?.labels,
+    )
+
+    res = await api('GET', `/api/admin/stats?from=${statsFrom}&to=${statsTo}`, { token: tokens.customer })
+    check('người thường xem thống kê khoảng ngày → 403', res.status === 403, res.status)
 
     section('BỘ LỌC + PHÂN TRANG')
     res = await api('GET', '/api/requests?status=done', { token: tokens.admin })
