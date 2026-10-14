@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import ServiceBookingModal from '../components/ServiceBookingModal.jsx'
 import { servicesApi } from '../lib/services.js'
+import { useCart } from '../context/useCart.js'
 
 export default function ServiceDetail() {
   const { id } = useParams()
+  const { addItem } = useCart()
 
   const [service, setService] = useState(null)
   const [relatedServices, setRelatedServices] = useState([])
@@ -131,6 +133,14 @@ export default function ServiceDetail() {
                       <line x1="3" y1="10" x2="21" y2="10" />
                     </svg>
                     Đặt lịch sửa dịch vụ này
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn btn--outline btn--lg"
+                    onClick={() => addItem(service)}
+                  >
+                    Thêm vào giỏ
                   </button>
 
                   <a href="tel:19006868" className="btn btn--outline btn--lg">

@@ -1,5 +1,5 @@
 import { firestore } from '../config/firebase.js'
-import { badRequest, conflict, notFound } from '../utils/http-error.js'
+import { badRequest, conflict, forbidden, notFound } from '../utils/http-error.js'
 
 export const INITIAL_SERVICES = [
   {
@@ -320,21 +320,18 @@ export async function seedServicesIfEmpty() {
   return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
 }
 
-/** Lấy danh sách dịch vụ sửa chữa từ Cloud Firestore */
-export async function listRepairServices({ category, search } = {}) {
+/**
+ * Lấy danh sách dịch vụ sửa chữa từ Cloud Firestore.
+ * Hỗ trợ lọc theo danh mục, tìm kiếm, sắp xếp và chủ sở hữu (ownerUid).
+ */
+export async function listRepairServices({ category, search, sort, ownerUid, actor } = {}) {
   let list = await seedServicesIfEmpty()
 
-  // Sắp xếp theo thứ tự hiển thị ổn định
-  const initialOrder = INITIAL_SERVICES.map((s) => s.id)
-  list.sort((a, b) => {
-    const idxA = initialOrder.indexOf(a.id)
-    const idxB = initialOrder.indexOf(b.id)
-    if (idxA !== -1 && idxB !== -1) return idxA - idxB
-    return (a.id || '').localeCompare(b.id || '')
-  })
-
-  if (category && category !== 'all') {
-    list = list.filter((s) => s.category === category)
+  // Lọc theo chủ sở hữu: "mine" = dịch vụ của chính người dùng hiện tại (thợ)
+  if (ownerUid === 'mine') {
+    list = actor?.uid ? list.filter((s) => s.ownerUid === actor.uid) : []
+  } else if (ownerUid && ownerUid !== 'all') {
+    list = list.filter((s) => s.ownerUid === ownerUid)
   }
 
   if (search) {
@@ -345,6 +342,25 @@ export async function listRepairServices({ category, search } = {}) {
         (s.shortDesc || '').toLowerCase().includes(term) ||
         (s.categoryName || '').toLowerCase().includes(term),
     )
+  }
+
+  if (category && category !== 'all') {
+    list = list.filter((s) => s.category === category)
+  }
+
+  // Sắp xếp theo giá khởi điểm, mặc định giữ thứ tự hiển thị ổn định
+  if (sort === 'price_asc') {
+    list.sort((a, b) => (Number(a.startingPrice) || 0) - (Number(b.startingPrice) || 0))
+  } else if (sort === 'price_desc') {
+    list.sort((a, b) => (Number(b.startingPrice) || 0) - (Number(a.startingPrice) || 0))
+  } else {
+    const initialOrder = INITIAL_SERVICES.map((s) => s.id)
+    list.sort((a, b) => {
+      const idxA = initialOrder.indexOf(a.id)
+      const idxB = initialOrder.indexOf(b.id)
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB
+      return (a.id || '').localeCompare(b.id || '')
+    })
   }
 
   return list
@@ -366,19 +382,108 @@ export async function getRepairService(id) {
   return found
 }
 
-/** Thêm mới dịch vụ lên Cloud Firestore (Dành cho Admin) */
-export async function createRepairService(input = {}) {
-  const title = String(input.title || '').trim()
+// ===== Quản lý dịch vụ sửa chữa (admin / người bán - thợ) =====
+
+const norm = (value) => String(value ?? '').trim()
+
+const SERVICE_CATEGORIES = ['electric', 'water']
+const SERVICE_CATEGORY_LABEL = { electric: 'Sửa chữa điện', water: 'Sửa chữa nước' }
+
+/** Định dạng giá theo kiểu Việt Nam: 200000 → "200.000" */
+const formatPrice = (value) => Number(value || 0).toLocaleString('vi-VN')
+
+/** Tạo id/slug từ tiêu đề nếu người dùng không truyền id */
+const slugify = (value) =>
+  String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+
+/** Chuẩn hóa 1 trường danh sách về mảng (chấp nhận mảng hoặc chuỗi nhiều dòng) */
+const toArray = (value, keyName) => {
+  if (!value) return []
+  if (Array.isArray(value)) return value
+  if (typeof value === 'string') {
+    return value
+      .split('\n')
+      .map((line) => norm(line))
+      .filter(Boolean)
+  }
+  throw badRequest(`${keyName} không hợp lệ.`)
+}
+
+/** Chuẩn hóa & kiểm tra dữ liệu đầu vào của dịch vụ sửa chữa */
+const sanitizeRepairServiceInput = (input = {}) => {
+  const title = norm(input.title)
   if (!title) throw badRequest('Vui lòng nhập tiêu đề dịch vụ.')
 
-  const id =
-    String(input.id || '').trim() ||
-    title
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
+  const category = norm(input.category)
+  if (!SERVICE_CATEGORIES.includes(category)) {
+    throw badRequest("Danh mục dịch vụ phải là 'electric' hoặc 'water'.")
+  }
+
+  const startingPrice = Number(input.startingPrice)
+  if (!Number.isFinite(startingPrice) || startingPrice < 0) {
+    throw badRequest('Giá khởi điểm phải là số lớn hơn hoặc bằng 0.')
+  }
+
+  const categoryName = norm(input.categoryName) || SERVICE_CATEGORY_LABEL[category]
+  const priceDisplay = norm(input.priceDisplay) || `Từ ${formatPrice(startingPrice)} đ`
+
+  const signs = toArray(input.signs, 'signs')
+    .map((item) =>
+      item && typeof item === 'object' ? norm(item.value ?? item.title ?? '') : norm(item),
+    )
+    .filter(Boolean)
+
+  const priceList = toArray(input.priceList, 'priceList')
+    .map((row) =>
+      row && typeof row === 'object'
+        ? { item: norm(row.item), unit: norm(row.unit), price: norm(row.price) }
+        : { item: norm(row), unit: '', price: '' },
+    )
+    .filter((row) => row.item || row.price)
+
+  const process = toArray(input.process, 'process')
+    .map((step, index) =>
+      step && typeof step === 'object'
+        ? { step: Number(step.step) || index + 1, title: norm(step.title), desc: norm(step.desc) }
+        : { step: index + 1, title: norm(step), desc: '' },
+    )
+    .filter((step) => step.title || step.desc)
+
+  return {
+    title,
+    category,
+    categoryName,
+    startingPrice,
+    priceDisplay,
+    responseTime: norm(input.responseTime),
+    warranty: norm(input.warranty),
+    image: norm(input.image),
+    shortDesc: norm(input.shortDesc),
+    description: norm(input.description),
+    signs,
+    priceList,
+    process,
+  }
+}
+
+/** Kiểm tra quyền quản lý dịch vụ: admin quản lý tất cả, thợ chỉ quản lý dịch vụ của mình */
+function assertCanManageService(service, actor) {
+  if (!actor) throw forbidden('Cần đăng nhập để quản lý dịch vụ.')
+  if (actor.role === 'admin') return
+  if (actor.role === 'repairman' && actor.uid && service.ownerUid === actor.uid) return
+  throw forbidden('Bạn không có quyền quản lý dịch vụ này.')
+}
+
+/** Thêm mới dịch vụ lên Cloud Firestore (admin tạo dịch vụ nền tảng, thợ tạo dịch vụ của mình) */
+export async function createRepairService(input = {}, actor = null) {
+  const data = sanitizeRepairServiceInput(input)
+
+  const id = String(input.id || '').trim() || slugify(data.title) || `service-${Date.now()}`
 
   const docRef = servicesCol().doc(id)
   const existing = await docRef.get()
@@ -386,46 +491,66 @@ export async function createRepairService(input = {}) {
     throw conflict('Dịch vụ với mã này đã tồn tại.')
   }
 
+  const isRepairman = actor?.role === 'repairman'
+  const now = Date.now()
   const newService = {
-    ...input,
+    ...data,
     id,
-    title,
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
+    ownerUid: isRepairman ? actor.uid : null,
+    ownerName: isRepairman ? actor.displayName || actor.email || '' : null,
+    createdAt: now,
+    updatedAt: now,
   }
 
   await docRef.set(newService)
   return newService
 }
 
-/** Cập nhật dịch vụ trên Cloud Firestore (Dành cho Admin) */
-export async function updateRepairService(id, input = {}) {
+/** Cập nhật dịch vụ trên Cloud Firestore (chủ sở hữu hoặc admin) */
+export async function updateRepairService(id, input = {}, actor = null) {
   if (!id) throw badRequest('Thiếu mã dịch vụ.')
+
   const docRef = servicesCol().doc(id)
-  const existing = await docRef.get()
-  if (!existing.exists) {
+  const existingDoc = await docRef.get()
+  if (!existingDoc.exists) {
     throw notFound('Không tìm thấy dịch vụ để cập nhật.')
   }
 
-  const updated = {
-    ...existing.data(),
-    ...input,
-    id,
-    updatedAt: Date.now(),
+  const existing = { id, ...existingDoc.data() }
+  assertCanManageService(existing, actor)
+
+  // PATCH: chỉ ghi đè các trường thực sự được gửi lên, giữ nguyên phần còn lại
+  const provided = Object.fromEntries(
+    Object.entries(input).filter(([, value]) => value !== undefined),
+  )
+
+  // Đổi danh mục / giá khởi điểm mà không gửi kèm nhãn hiển thị → tự suy diễn lại
+  if (provided.category !== undefined && provided.categoryName === undefined) {
+    provided.categoryName = ''
+  }
+  if (provided.startingPrice !== undefined && provided.priceDisplay === undefined) {
+    provided.priceDisplay = ''
   }
 
-  await docRef.set(updated)
-  return updated
+  const data = sanitizeRepairServiceInput({ ...existing, ...provided })
+  const patch = { ...data, updatedAt: Date.now() }
+
+  await docRef.set({ ...existing, ...patch })
+  return { ...existing, ...patch }
 }
 
-/** Xóa dịch vụ khỏi Cloud Firestore (Dành cho Admin) */
-export async function deleteRepairService(id) {
+/** Xóa dịch vụ khỏi Cloud Firestore (chủ sở hữu hoặc admin) */
+export async function deleteRepairService(id, actor = null) {
   if (!id) throw badRequest('Thiếu mã dịch vụ.')
+
   const docRef = servicesCol().doc(id)
-  const existing = await docRef.get()
-  if (!existing.exists) {
+  const existingDoc = await docRef.get()
+  if (!existingDoc.exists) {
     throw notFound('Không tìm thấy dịch vụ để xóa.')
   }
+
+  const existing = { id, ...existingDoc.data() }
+  assertCanManageService(existing, actor)
 
   await docRef.delete()
   return { success: true, id }

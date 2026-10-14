@@ -234,3 +234,17 @@
     }
   }
 }
+
+// ===== Khối xác nhận email sau đăng ký =====
+.verify-block {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  &__actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 4px;
+  }
+}

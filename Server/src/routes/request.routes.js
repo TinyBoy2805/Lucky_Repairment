@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { requireAuth } from '../middlewares/auth.middleware.js'
-import { index, store, update } from '../controllers/request.controller.js'
+import { index, show, store, update } from '../controllers/request.controller.js'
 
 const router = Router()
 
@@ -8,6 +8,7 @@ const router = Router()
 router.use(requireAuth)
 
 router.get('/', index)
+router.get('/:id', show)
 router.post('/', store)
 router.patch('/:id', update)
 

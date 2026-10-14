@@ -16,6 +16,7 @@ const TRANSITIONS = { assigned: 'in_progress', in_progress: 'done' }
 
 const requestsCol = () => firestore.collection('requests')
 const requestDoc = (id) => firestore.collection('requests').doc(id)
+const requestsRef = () => db.ref('requests')
 const requestRtdbRef = (id) => db.ref(`requests/${id}`)
 
 const badRequest = (message) => Object.assign(new Error(message), { status: 400 })
@@ -188,4 +189,31 @@ export async function updateRequest({ id, actor, action, status }) {
   } catch {}
 
   return { id, ...request, ...patch }
+}
+
+/**
+ * Lấy chi tiết 1 yêu cầu sửa chữa:
+ * - admin → xem tất cả.
+ * - khách sở hữu (customerUid) → xem đơn của mình.
+ * - thợ được gán (repairmanUid) → xem đơn mình phụ trách.
+ */
+export async function getRequest(id, actor) {
+  if (!id) throw badRequest('Thiếu mã yêu cầu.')
+
+  const doc = await requestDoc(id).get()
+  if (!doc.exists) {
+    throw notFound('Không tìm thấy yêu cầu sửa chữa.')
+  }
+
+  const request = { id, ...doc.data() }
+  const uid = actor?.uid
+  const isAdmin = actor?.role === 'admin'
+  const isOwner = uid && request.customerUid === uid
+  const isAssigned = uid && request.repairmanUid === uid
+
+  if (!isAdmin && !isOwner && !isAssigned) {
+    throw forbidden('Bạn không có quyền xem yêu cầu này.')
+  }
+
+  return request
 }

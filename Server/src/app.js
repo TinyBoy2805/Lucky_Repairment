@@ -18,6 +18,7 @@ import productRoutes from './routes/product.routes.js'
 import orderRoutes from './routes/order.routes.js'
 import serviceRoutes from './routes/service.routes.js'
 import settingsRoutes from './routes/settings.routes.js'
+import repairmanRoutes from './routes/repairman.routes.js'
 
 export function createApp() {
   const app = express()
@@ -51,6 +52,7 @@ export function createApp() {
   app.use('/api/products', productRoutes)
   app.use('/api/orders', orderRoutes)
   app.use('/api/settings', settingsRoutes)
+  app.use('/api/repairman', repairmanRoutes)
 
   app.use(notFound)
   app.use(errorHandler)

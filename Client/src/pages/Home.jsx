@@ -408,7 +408,7 @@ export default function Home() {
         </div>
       </section>
 
-      {selectedService && (
+      {isModalOpen && (
         <ServiceBookingModal
           service={selectedService}
           isOpen={isModalOpen}

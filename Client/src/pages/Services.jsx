@@ -2,14 +2,20 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import ServiceBookingModal from '../components/ServiceBookingModal.jsx'
 import { servicesApi } from '../lib/services.js'
+import { useCart } from '../context/useCart.js'
+import { useDebounced } from '../lib/query.js'
 
 export default function Services() {
+  const { addItem } = useCart()
   const [services, setServices] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   const [category, setCategory] = useState('all') // 'all' | 'electric' | 'water'
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounced(search, 500) // 500ms debounce
+
+  const [sort, setSort] = useState('newest') // 'newest' | 'price-asc' | 'price-desc'
 
   const [selectedService, setSelectedService] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -18,7 +24,7 @@ export default function Services() {
     setLoading(true)
     setError('')
     try {
-      const data = await servicesApi.list({ category, search })
+      const data = await servicesApi.list({ category, search, sort })
       setServices(data.services || [])
     } catch (err) {
       setError(err.message || 'Không thể tải danh sách dịch vụ.')
@@ -30,7 +36,7 @@ export default function Services() {
   useEffect(() => {
     loadServices()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [category])
+  }, [debouncedSearch, category, sort])
 
   const handleSearchSubmit = (e) => {
     e.preventDefault()
@@ -94,6 +100,18 @@ export default function Services() {
               Tìm kiếm
             </button>
           </form>
+
+          <div className="products-sort">
+            <select
+              className="admin-select"
+              value={sort}
+              onChange={(e) => setSort(e.target.value)}
+            >
+              <option value="newest">Mới nhất</option>
+              <option value="price-asc">Giá thấp đến cao</option>
+              <option value="price-desc">Giá cao đến thấp</option>
+            </select>
+          </div>
         </div>
 
         {error && (
@@ -152,12 +170,13 @@ export default function Services() {
                 </div>
 
                 <div className="service-item-card__foot">
-                  <Link
-                    to={`/services/${srv.id}`}
+                  <button
+                    type="button"
                     className="btn btn--outline btn--sm"
+                    onClick={() => addItem(srv)}
                   >
-                    Xem chi tiết
-                  </Link>
+                    Thêm vào giỏ
+                  </button>
                   <button
                     type="button"
                     className="btn btn--primary btn--sm"

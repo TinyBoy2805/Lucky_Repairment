@@ -1,6 +1,7 @@
 import { api } from './api.js'
 import { getToken } from './firebase.js'
 import { buildQuery } from './query.js'
+import { servicesApi } from './services.js'
 
 export const adminApi = {
   stats: async (range = 'all') =>
@@ -20,6 +21,13 @@ export const adminApi = {
     create: async (data) => api.post('/api/categories', data, await getToken()),
     update: async (id, data) => api.patch(`/api/categories/${id}`, data, await getToken()),
     remove: async (id) => api.delete(`/api/categories/${id}`, await getToken()),
+  },
+
+  services: {
+    list: (params = {}) => servicesApi.list(params),
+    create: (data) => servicesApi.create(data),
+    update: (id, data) => servicesApi.update(id, data),
+    remove: (id) => servicesApi.remove(id),
   },
 
   reports: {

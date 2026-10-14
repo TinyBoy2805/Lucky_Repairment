@@ -127,7 +127,7 @@ export default function AdminOrders() {
           <input
             className="admin-input"
             type="search"
-            placeholder="Tìm theo thiết bị, khách, địa chỉ…"
+            placeholder="Tìm theo dịch vụ, khách, địa chỉ…"
             value={keyword}
             onChange={(event) => {
               setKeyword(event.target.value)

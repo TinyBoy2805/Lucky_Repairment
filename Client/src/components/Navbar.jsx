@@ -1,18 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import Logo from './Logo.jsx'
-import MyBookingsModal from './MyBookingsModal.jsx'
-import ProfileModal from './ProfileModal.jsx'
 import { useAuth } from '../context/useAuth.js'
+import { useCart } from '../context/useCart.js'
 
 export default function Navbar() {
   const { user, logout } = useAuth()
+  const { totalItems } = useCart()
   const location = useLocation()
   const navigate = useNavigate()
 
   const [dropdownOpen, setDropdownOpen] = useState(false)
-  const [isBookingsOpen, setIsBookingsOpen] = useState(false)
-  const [isProfileOpen, setIsProfileOpen] = useState(false)
   const dropdownRef = useRef(null)
   const closeTimerRef = useRef(null)
 
@@ -165,6 +163,20 @@ export default function Navbar() {
 
           {/* Khu vực hành động & tài khoản */}
           <div className="home-header__actions">
+            {/* Giỏ hàng */}
+            <Link
+              to="/cart"
+              className={`home-cart-link ${location.pathname === '/cart' ? 'home-cart-link--active' : ''}`}
+              aria-label={`Giỏ dịch vụ (${totalItems})`}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="22" height="22">
+                <circle cx="9" cy="21" r="1" />
+                <circle cx="20" cy="21" r="1" />
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+              </svg>
+              {totalItems > 0 && <span className="home-cart-badge">{totalItems}</span>}
+            </Link>
+
             {user ? (
               <div
                 className="home-user-dropdown-wrapper"
@@ -216,31 +228,27 @@ export default function Navbar() {
                       </div>
 
                       <div className="home-user-dropdown__menu">
-                        <button
-                          type="button"
-                          className="home-user-dropdown__item"
-                          onClick={() => {
-                            setDropdownOpen(false)
-                            setIsBookingsOpen(true)
-                          }}
-                          role="menuitem"
-                        >
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                            <line x1="16" y1="2" x2="16" y2="6" />
-                            <line x1="8" y1="2" x2="8" y2="6" />
-                            <line x1="3" y1="10" x2="21" y2="10" />
-                          </svg>
-                          <span>Đơn sửa chữa của tôi</span>
-                        </button>
+                        {user.role !== 'admin' && user.role !== 'repairman' && (
+                          <Link
+                            to="/customer"
+                            className="home-user-dropdown__item"
+                            onClick={() => setDropdownOpen(false)}
+                            role="menuitem"
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+                              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                              <line x1="16" y1="2" x2="16" y2="6" />
+                              <line x1="8" y1="2" x2="8" y2="6" />
+                              <line x1="3" y1="10" x2="21" y2="10" />
+                            </svg>
+                            <span>Đơn sửa chữa của tôi</span>
+                          </Link>
+                        )}
 
-                        <button
-                          type="button"
+                        <Link
+                          to="/profile"
                           className="home-user-dropdown__item"
-                          onClick={() => {
-                            setDropdownOpen(false)
-                            setIsProfileOpen(true)
-                          }}
+                          onClick={() => setDropdownOpen(false)}
                           role="menuitem"
                         >
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
@@ -248,7 +256,7 @@ export default function Navbar() {
                             <circle cx="12" cy="7" r="4" />
                           </svg>
                           <span>Thông tin tài khoản</span>
-                        </button>
+                        </Link>
 
                         {user.role === 'admin' && (
                           <Link
@@ -323,21 +331,6 @@ export default function Navbar() {
           </div>
         </div>
       </header>
-
-      {isBookingsOpen && (
-        <MyBookingsModal
-          isOpen={isBookingsOpen}
-          onClose={() => setIsBookingsOpen(false)}
-        />
-      )}
-
-      {isProfileOpen && (
-        <ProfileModal
-          isOpen={isProfileOpen}
-          onClose={() => setIsProfileOpen(false)}
-          user={user}
-        />
-      )}
     </>
   )
 }

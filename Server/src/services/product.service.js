@@ -1,8 +1,10 @@
 import { db } from '../config/firebase.js'
-import { badRequest, notFound } from '../utils/http-error.js'
+import { badRequest, forbidden, notFound } from '../utils/http-error.js'
 
 const productsRef = () => db.ref('products')
 const productRef = (id) => productsRef().child(id)
+const reviewsRef = () => db.ref('reviews')
+const reviewRef = (id) => reviewsRef().child(id)
 
 const norm = (value) => String(value ?? '').trim()
 
@@ -18,7 +20,7 @@ export const DEFAULT_PRODUCTS = [
     originalPrice: 450000,
     image: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=800&q=80',
     shortDesc: 'Aptomat chống rò giật và quá tải tự động ngắt điện cực nhạy trong 0.1 giây, an toàn tuyệt đối cho gia đình.',
-    description: `Aptomat RCBO Panasonic là thiết bị bảo vệ tối ưu cho hệ thống điện dân dụng. Khi phát hiện dòng rò đạt ngưỡng 30mA hoặc sự cố quá tải, ngắn mạch, thiết bị tự động ngắt toàn bộ nguồn điện trong vòng 0.1 giây, ngăn ngừa tối đa nguy cơ điện giật và cháy nổ. Sản phẩm sản xuất theo tiêu chuẩn khắt khe của Nhật Bản, độ bền cơ học cao, vỏ nhựa chống cháy chuyên dụng.`,
+    description: `Aptomat RCBO Panasonic là thiết bị bảo vệ tối ưu cho hệ thống điện dân dụng. Khi phát hiện dòng rò đạt ngưỡng 30mA hoặc sự cố quá tải, ngắn mạch, thiết bị tự động ngắt toàn bộ nguồn điện trong 0.1 giây, ngăn ngừa tối đa nguy cơ điện giật và cháy nổ. Sản phẩm sản xuất theo tiêu chuẩn khắt khe của Nhật Bản, độ bền cơ học cao, vỏ nhựa chống cháy chuyên dụng.`,
     installationFee: 100000,
     inStock: true,
     warranty: '24 tháng chính hãng',
@@ -122,7 +124,7 @@ export const DEFAULT_PRODUCTS = [
     features: [
       'Thiết kế mặt phẳng phẳng tràn viền cao cấp, sang trọng',
       'Cấu tạo nhíp đồng nguyên chất đàn hồi tốt, cắm rút êm ái',
-      'Vật liệu nhựa Polycarbonate chống cháy và chống ố vàng',
+      'Vật liệu nhoplastic Polycarbonate chống cháy và chống ố vàng',
       'Lắp đặt chuẩn đế âm vuông / chữ nhật tiêu chuẩn',
     ],
   },
@@ -152,12 +154,12 @@ export const DEFAULT_PRODUCTS = [
       'Sử dụng Chip LED Samsung thế hệ mới hiệu suất cao',
       'Đổi màu ánh sáng linh hoạt phù hợp từng không gian sinh hoạt',
       'Thân đèn nhôm đúc tản nhiệt tối ưu, mặt nhựa tán quang êm dịu không chói mắt',
-      'Dải điện áp rộng 150V - 250V hoạt động tốt kể cả khi điện yếu',
+      'Dải điệnáp rộng 150V - 250V hoạt động tốt kể cả khi điện yếu',
     ],
   },
   {
     id: 'prod-phao-dien-tu-dong-radar-st70ab',
-    name: 'Phao điện chống cạn & chống tràn bồn nước tự động Radar ST-70AB',
+    name: 'Pao điện chống cạn & chống tràn bồn nước tự động Radar ST-70AB',
     category: 'water',
     categoryName: 'Thiết bị nước',
     brand: 'Radar',
@@ -201,8 +203,8 @@ async function ensureProductsSeeded() {
   }
 }
 
-/** Lấy danh sách sản phẩm (có lọc theo danh mục hoặc từ khóa tìm kiếm) */
-export async function listProducts({ category, search } = {}) {
+/** Lấy danh sách sản phẩm (có lọc theo danh mục, thương hiệu, tìm kiếm, sort, chủ sở hữu) */
+export async function listProducts({ category, search, brand, sort, ownerUid } = {}) {
   await ensureProductsSeeded()
 
   const snapshot = await productsRef().once('value')
@@ -218,14 +220,39 @@ export async function listProducts({ category, search } = {}) {
     list = list.filter((p) => p.category === category)
   }
 
+  if (brand && brand !== 'all') {
+    list = list.filter((p) => p.brand === brand)
+  }
+
+  // Lọc theo chủ sở hữu (thợ xem sản phẩm của riêng mình)
+  if (ownerUid && ownerUid !== 'all') {
+    list = list.filter((p) => p.ownerUid === ownerUid)
+  }
+
   if (search) {
     const term = norm(search).toLowerCase()
     list = list.filter(
       (p) =>
         p.name.toLowerCase().includes(term) ||
         p.brand.toLowerCase().includes(term) ||
-        p.shortDesc?.toLowerCase().includes(term),
+        (p.shortDesc && p.shortDesc.toLowerCase().includes(term)) ||
+        // Search trong specifications
+        (p.specifications &&
+          p.specifications.some(
+            (spec) => String(spec.key).toLowerCase().includes(term) || String(spec.value).toLowerCase().includes(term),
+          )) ||
+        // Search trong features
+        (p.features && p.features.some((feat) => feat.toLowerCase().includes(term))),
     )
+  }
+
+  // Sắp xếp: giá tăng/giảm, hoặc mới nhất
+  if (sort === 'price_asc') {
+    list.sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0))
+  } else if (sort === 'price_desc') {
+    list.sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0))
+  } else if (sort === 'newest' || !sort) {
+    list.sort((a, b) => (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0))
   }
 
   return list
@@ -234,7 +261,6 @@ export async function listProducts({ category, search } = {}) {
 /** Lấy chi tiết 1 sản phẩm */
 export async function getProduct(id) {
   if (!id) throw badRequest('Thiếu mã sản phẩm.')
-  await ensureProductsSeeded()
 
   const snapshot = await productRef(id).once('value')
   if (!snapshot.exists()) {
@@ -245,4 +271,231 @@ export async function getProduct(id) {
   }
 
   return { id, ...snapshot.val() }
+}
+
+// ===== Quản lý sản phẩm (admin / người bán - thợ) =====
+
+const CATEGORY_LABEL = { electric: 'Thiết bị điện', water: 'Thiết bị nước' }
+export const PRODUCT_CATEGORIES = ['electric', 'water']
+
+const sanitizeProductInput = (input = {}) => {
+  const category = norm(input.category) || 'other'
+  const name = norm(input.name)
+  const price = Number(input.price) || 0
+
+  if (!name) throw badRequest('Vui lòng nhập tên sản phẩm.')
+  if (price <= 0) throw badRequest('Giá sản phẩm phải lớn hơn 0.')
+
+  const brand = norm(input.brand) || 'Khác'
+  const originalPrice = Number(input.originalPrice) || 0
+
+  // Đảm bảo specs/features là mảng chuỗi
+  const asStrs = (value, keyName) => {
+    if (!value) return []
+    if (Array.isArray(value)) {
+      return value
+        .map((spec) =>
+          spec && typeof spec === 'object'
+            ? { key: norm(spec.key), value: norm(spec.value) }
+            : norm(spec),
+        )
+        .filter((item) => (typeof item === 'object' ? item.key || item.value : item))
+    }
+    if (typeof value === 'string') {
+      return value
+        .split('\n')
+        .map((line) => norm(line))
+        .filter(Boolean)
+    }
+    throw badRequest(`${keyName} không hợp lệ.`)
+  }
+
+  return {
+    name,
+    category,
+    categoryName: CATEGORY_LABEL[category] || 'Khác',
+    brand,
+    price,
+    originalPrice: originalPrice > price ? originalPrice : 0,
+    image: norm(input.image),
+    shortDesc: norm(input.shortDesc),
+    description: norm(input.description),
+    installationFee: Math.max(0, Number(input.installationFee) || 0),
+    inStock: input.inStock !== undefined ? Boolean(input.inStock) : true,
+    warranty: norm(input.warranty) || 'Không bảo hành',
+    specifications: asStrs(input.specifications, 'specifications'),
+    features: asStrs(input.features, 'features'),
+  }
+}
+
+/** Kiểm tra quyền quản lý sản phẩm: admin quản lý được tất cả, thợ chỉ quản lý sản phẩm của mình */
+function assertCanManageProduct(product, actor) {
+  if (!actor) throw forbidden('Cần đăng nhập để quản lý sản phẩm.')
+  if (actor.role === 'admin') return
+  if (actor.role === 'repairman' && product.ownerUid === actor.uid) return
+  throw forbidden('Bạn không có quyền quản lý sản phẩm này.')
+}
+
+/** Tạo sản phẩm mới (admin hoặc người bán - thợ) */
+export async function createProduct(input = {}, owner) {
+  const data = sanitizeProductInput(input)
+  const now = Date.now()
+
+  const ref = await productsRef().push({
+    ...data,
+    ownerUid: owner?.uid || null,
+    ownerName: owner?.displayName || owner?.email || '',
+    createdAt: now,
+    updatedAt: now,
+  })
+
+  return { id: ref.key, ...data, ownerUid: owner?.uid || null, createdAt: now }
+}
+
+/** Cập nhật sản phẩm (chủ sở hữu hoặc admin) */
+export async function updateProduct(id, input = {}, actor) {
+  if (!id) throw badRequest('Thiếu mã sản phẩm.')
+
+  const existing = await getProduct(id)
+  assertCanManageProduct(existing, actor)
+
+  // PATCH: chỉ ghi đè các trường thực sự được gửi lên, giữ nguyên phần còn lại
+  const provided = Object.fromEntries(
+    Object.entries(input).filter(([, value]) => value !== undefined),
+  )
+  const data = sanitizeProductInput({ ...existing, ...provided })
+  const patch = {
+    ...data,
+    updatedAt: Date.now(),
+  }
+
+  await productRef(id).update(patch)
+  return { ...existing, ...patch }
+}
+
+/** Xóa sản phẩm (chủ sở hữu hoặc admin) */
+export async function deleteProduct(id, actor) {
+  if (!id) throw badRequest('Thiếu mã sản phẩm.')
+
+  const existing = await getProduct(id)
+  assertCanManageProduct(existing, actor)
+
+  await productRef(id).remove()
+  return { success: true }
+}
+
+/** Tạo review cho sản phẩm */
+export async function createReview(productId, customerUid, customerName, rating, comment) {
+  if (!productId) throw badRequest('Thiếu mã sản phẩm.')
+  if (!rating || rating < 1 || rating > 5) throw badRequest('Rating phải từ 1 đến 5.')
+
+  const now = Date.now()
+  const reviewData = {
+    productId,
+    customerUid,
+    customerName,
+    rating,
+    comment: norm(comment),
+    createdAt: now,
+    updatedAt: now,
+  }
+
+  const ref = await reviewsRef().push(reviewData)
+  return { id: ref.key, ...reviewData }
+}
+
+/** Lấy danh sách review cho sản phẩm */
+export async function listReviews(productId) {
+  if (!productId) throw badRequest('Thiếu mã sản phẩm.')
+
+  const snapshot = await reviewsRef().orderByChild('productId').equalTo(productId).once('value')
+  if (!snapshot.exists()) return []
+
+  return Object.entries(snapshot.val())
+    .map(([id, data]) => ({ id, ...data }))
+    .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
+}
+
+/** Tính điểm trung bình cho sản phẩm */
+export async function getProductAverageRating(productId) {
+  const reviews = await listReviews(productId)
+  if (reviews.length === 0) return 0
+
+  const total = reviews.reduce((sum, r) => sum + r.rating, 0)
+  return Math.round((total / reviews.length) * 10) / 10
+}
+
+/** Lấy thống kê review cho sản phẩm */
+export async function getProductRatingStats(productId) {
+  const reviews = await listReviews(productId)
+  const total = reviews.length
+  const average = total > 0 ? await getProductAverageRating(productId) : 0
+
+  // Phân phối rating
+  const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
+  for (const r of reviews) {
+    const rating = r.rating
+    if (distribution.hasOwnProperty(rating)) {
+      distribution[rating]++
+    }
+  }
+
+  return {
+    total,
+    average,
+    distribution,
+  }
+}
+
+/** Sản phẩm bán chạy nhất - tính từ lịch sử đơn hàng */
+export async function getBestSellingProducts(limit = 5) {
+  const ordersRef = db.ref('orders')
+  const snapshot = await ordersRef.get()
+  if (!snapshot.exists()) return []
+
+  const allOrders = Object.entries(snapshot.val())
+    .map(([id, data]) => ({ id, ...data }))
+    .filter((o) => o.items && o.items.length > 0)
+
+  // Đếm số lượng mỗi productId được bán
+  const productSales = {}
+
+  for (const order of allOrders) {
+    for (const item of order.items) {
+      const productId = item.productId
+      if (!productSales[productId]) {
+        productSales[productId] = { totalQuantity: 0, totalAmount: 0, product: null }
+      }
+      productSales[productId].totalQuantity += item.quantity || 1
+      productSales[productId].totalAmount += item.subtotal || 0
+    }
+  }
+
+  // Lấy thông tin sản phẩm
+  const productIds = Object.keys(productSales)
+  if (productIds.length === 0) return []
+
+  const productSnapshot = await productsRef().get()
+
+  let allProducts = []
+  if (productSnapshot.exists()) {
+    allProducts = Object.entries(productSnapshot.val())
+      .map(([id, data]) => ({ id, ...data }))
+      .filter(p => productIds.includes(p.id))
+  }
+
+  // Gắn thông tin product vào sales data
+  const productMap = {}
+  allProducts.forEach(p => { productMap[p.id] = p })
+
+  const salesList = productIds
+    .map(productId => ({
+      productId,
+      ...productSales[productId],
+      product: productMap[productId] || null,
+    }))
+    .sort((a, b) => b.totalQuantity - a.totalQuantity)
+    .slice(0, limit)
+
+  return salesList
 }

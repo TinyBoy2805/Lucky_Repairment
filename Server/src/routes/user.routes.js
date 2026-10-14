@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { requireAuth, requireRole } from '../middlewares/auth.middleware.js'
-import { changeRole, index, show } from '../controllers/user.controller.js'
+import { changeRole, index, show, updateProfile } from '../controllers/user.controller.js'
 
 const router = Router()
 
@@ -9,6 +9,7 @@ router.use(requireAuth, requireRole('admin'))
 
 router.get('/', index)
 router.get('/:uid', show)
+router.patch('/:uid/profile', updateProfile)
 router.patch('/:uid/role', changeRole)
 
 export default router
