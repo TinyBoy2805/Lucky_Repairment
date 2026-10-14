@@ -44,6 +44,7 @@ export default function AdminDashboard() {
     () => adminApi.stats(range),
     range,
   )
+  const [activeTab, setActiveTab] = useState('kpis') // 'kpis' | 'repairmen' | 'revenue' | 'repairman-orders'
 
   const stats = data?.stats
   const ranged = stats && range !== 'all'
@@ -174,6 +175,31 @@ export default function AdminDashboard() {
             ))}
           </div>
 
+          {/* Thống kê theo thợ sửa chữa */}
+          <div className="range-tabs range-tabs--sub">
+            <button
+              type="button"
+              className={`btn btn--sm ${activeTab === 'repairmen' ? 'btn--primary' : 'btn--outline'}`}
+              onClick={() => setActiveTab(activeTab === 'repairmen' ? 'kpis' : 'repairmen')}
+            >
+              Thợ sửa chữa
+            </button>
+            <button
+              type="button"
+              className={`btn btn--sm ${activeTab === 'revenue' ? 'btn--primary' : 'btn--outline'}`}
+              onClick={() => setActiveTab(activeTab === 'revenue' ? 'kpis' : 'revenue')}
+            >
+              Doanh thu
+            </button>
+            <button
+              type="button"
+              className={`btn btn--sm ${activeTab === 'repairman-orders' ? 'btn--primary' : 'btn--outline'}`}
+              onClick={() => setActiveTab(activeTab === 'repairman-orders' ? 'kpis' : 'repairman-orders')}
+            >
+              Đơn hàng thợ
+            </button>
+          </div>
+
           <div className="admin-cols">
             <BreakdownCard title="Người dùng theo vai trò" rows={roleRows} />
             <BreakdownCard title="Đơn theo trạng thái" rows={statusRows} />
@@ -239,6 +265,117 @@ export default function AdminDashboard() {
               )}
             </section>
           </div>
+
+          {activeTab === 'repairmen' && (
+            <section className="card">
+              <div className="toolbar">
+                <h2 className="card__title">Thợ sửa chữa của tôi</h2>
+                <span className="toolbar__spacer" />
+              </div>
+              {loading ? (
+                <p className="card__empty">Đang tải dữ liệu…</p>
+              ) : (
+                <ul className="req-list">
+                  {stats?.repairmen?.length ? (
+                    stats.repairmen.map((repairman) => (
+                      <li key={repairman.uid} className="req-item">
+                        <div className="req-item__top">
+                          <strong>{repairman.displayName || repairman.email}</strong>
+                          <StatusBadge status="active" />
+                        </div>
+                        <p className="req-item__meta">
+                          Đã phân công: {repairman.assignedOrders || 0} đơn
+                        </p>
+                        <p className="req-item__meta">
+                          Tổng doanh thu: {fmtMoney(repairman.totalRevenue || 0)}
+                        </p>
+                        <button
+                          className="btn btn--primary btn--sm"
+                          style={{ marginTop: 8 }}
+                        >
+                          Xem chi tiết
+                        </button>
+                      </li>
+                    ))
+                  ) : (
+                    <p className="card__empty">Chưa có thợ nào được phân công.</p>
+                  )}
+                </ul>
+              )}
+            </section>
+          )}
+
+          {activeTab === 'revenue' && (
+            <section className="card">
+              <div className="toolbar">
+                <h2 className="card__title">Doanh thu theo thợ</h2>
+                <span className="toolbar__spacer" />
+              </div>
+              {loading ? (
+                <p className="card__empty">Đang tải dữ liệu…</p>
+              ) : (
+                <ul className="req-list">
+                  {stats?.repairmenRevenue?.length ? (
+                    stats.repairmenRevenue.map((item) => (
+                      <li key={item.uid} className="req-item">
+                        <div className="req-item__top">
+                          <strong>{item.displayName || item.email}</strong>
+                          <StatusBadge status="active" />
+                        </div>
+                        <p className="req-item__meta">
+                          Doanh thu: {fmtMoney(item.revenue || 0)}
+                        </p>
+                        <p className="req-item__meta">
+                          Số đơn: {item.ordersCount || 0}
+                        </p>
+                      </li>
+                    ))
+                  ) : (
+                    <p className="card__empty">Chưa có dữ liệu doanh thu.</p>
+                  )}
+                </ul>
+              )}
+            </section>
+          )}
+
+          {activeTab === 'repairman-orders' && (
+            <section className="card">
+              <div className="toolbar">
+                <h2 className="card__title">Đơn hàng của thợ</h2>
+                <span className="toolbar__spacer" />
+              </div>
+              {loading ? (
+                <p className="card__empty">Đang tải dữ liệu…</p>
+              ) : (
+                <ul className="req-list">
+                  {stats?.repairmanOrders?.length ? (
+                    stats.repairmanOrders.map((item) => (
+                      <li key={item.id} className="req-item">
+                        <div className="req-item__top">
+                          <strong>Đơn #{item.id}</strong>
+                          <StatusBadge status={item.status} />
+                        </div>
+                        <p className="req-item__meta">
+                          {item.customerName || 'Khách hàng'}
+                        </p>
+                        <p className="req-item__meta">
+                          {fmtDate(item.createdAt)}
+                        </p>
+                        <button
+                          className="btn btn--outline btn--sm"
+                          style={{ marginTop: 8 }}
+                        >
+                          Xem chi tiết
+                        </button>
+                      </li>
+                    ))
+                  ) : (
+                    <p className="card__empty">Chưa có đơn hàng.</p>
+                  )}
+                </ul>
+              )}
+            </section>
+          )}
         </>
       )}
     </div>

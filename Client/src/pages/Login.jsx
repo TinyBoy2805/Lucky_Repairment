@@ -1,10 +1,9 @@
-﻿import { useState } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import Field from '../components/Field.jsx'
 import PasswordField from '../components/PasswordField.jsx'
 import { useAuth } from '../context/useAuth.js'
 import { authErrorMessage } from '../lib/authErrors.js'
-import { homeFor } from '../lib/roles.js'
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -31,9 +30,19 @@ function GoogleIcon() {
   )
 }
 
+function FacebookIcon() {
+  return (
+    <svg viewBox="0 0 40 40" aria-hidden="true">
+      <path fill="#1877F2" d="M20 0c11.05 0 20 8.95 20 20s-8.95 20-20 20S0 31.05 0 20 8.95 0 20 0zm3.14 5.53h3.57v2.24h-3.57v-2.24zm14.63-5.36h2.37v5.08h-2.37v-5.08zm-9.23 11.03h2.75v2.34h-2.75v-2.34zm16.73-6.08h2.98v1.88h-2.98v-1.88zm-11.31 7.33h1.62v2.01h-1.62v-2.01zm-5.38 3.75h2.82v1.56h-2.82v-1.56zm7.57-7.72h1.98v1.08h-1.98v-1.08zm-7.19 3.23h1.75v1.91h-1.75v-1.91zm2.91-5.28h1.84v1.16h-1.84v-1.16z" />
+    </svg>
+  )
+}
+
 export default function Login() {
-  const { user, login, loginWithGoogle } = useAuth()
+  const { user, login, loginWithGoogle, loginWithFacebook } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const returnTo = location.state?.returnTo || location.state?.from || '/'
 
   const [form, setForm] = useState({
     email: '',
@@ -44,7 +53,7 @@ export default function Login() {
   const [busy, setBusy] = useState(false)
 
   if (user) {
-    return <Navigate to={homeFor(user.role)} replace />
+    return <Navigate to={returnTo} replace />
   }
 
   const update = (name, value) => {
@@ -73,8 +82,8 @@ export default function Login() {
 
     setBusy(true)
     try {
-      const profile = await login(email, form.password, form.remember)
-      navigate(homeFor(profile.role), { replace: true })
+      await login(email, form.password, form.remember)
+      navigate(returnTo, { replace: true })
     } catch (error) {
       console.error('[login]', error)
       setErrors({ general: authErrorMessage(error) })
@@ -86,10 +95,23 @@ export default function Login() {
   const handleGoogle = async () => {
     setBusy(true)
     try {
-      const profile = await loginWithGoogle()
-      navigate(homeFor(profile.role), { replace: true })
+      await loginWithGoogle()
+      navigate(returnTo, { replace: true })
     } catch (error) {
       console.error('[login-google]', error)
+      setErrors({ general: authErrorMessage(error) })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleFacebook = async () => {
+    setBusy(true)
+    try {
+      await loginWithFacebook()
+      navigate(returnTo, { replace: true })
+    } catch (error) {
+      console.error('[login-facebook]', error)
       setErrors({ general: authErrorMessage(error) })
     } finally {
       setBusy(false)
@@ -179,6 +201,16 @@ export default function Login() {
         >
           <GoogleIcon />
           Đăng nhập bằng Google
+        </button>
+
+        <button
+          className="btn btn--social btn--block"
+          type="button"
+          onClick={handleFacebook}
+          disabled={busy}
+        >
+          <FacebookIcon />
+          Đăng nhập bằng Facebook
         </button>
       </form>
 

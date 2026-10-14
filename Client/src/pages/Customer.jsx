@@ -1,21 +1,45 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import DashboardLayout from '../layouts/DashboardLayout.jsx'
 import Field from '../components/Field.jsx'
 import StatusBadge from '../components/StatusBadge.jsx'
 import { useAuth } from '../context/useAuth.js'
 import { requestsApi } from '../lib/requests.js'
-import { fmtDate } from '../lib/format.js'
+import { ordersApi } from '../lib/orders.js'
+import { fmtDate, fmtMoney } from '../lib/format.js'
+
+const ORDER_STATUS_LABELS = {
+  pending: { label: 'Chờ xác nhận', cls: 'status--pending' },
+  payment_verified: { label: 'Đã thanh toán', cls: 'status--assigned' },
+  confirmed: { label: 'Đã xác nhận', cls: 'status--assigned' },
+  delivering: { label: 'Đang giao & lắp đặt', cls: 'status--in_progress' },
+  completed: { label: 'Đã hoàn thành', cls: 'status--done' },
+  cancelled: { label: 'Đã hủy', cls: 'status--pending' },
+}
+
+const PAYMENT_METHOD_LABEL = {
+  cod: 'Thanh toán khi nhận / lắp đặt (COD)',
+  momo: 'Ví MoMo (QR)',
+  zalopay: 'Ví ZaloPay (QR)',
+  stripe: 'Thẻ quốc tế (Stripe)',
+}
 
 const emptyForm = (phone = '') => ({ device: '', issue: '', address: '', phone })
 
+const firstValue = (...values) =>
+  values.find((value) => value !== undefined && value !== null && value !== '')
+
 export default function Customer() {
   const { user } = useAuth()
+  const [activeTab, setActiveTab] = useState('requests') // 'requests' | 'orders'
   const [form, setForm] = useState(() => emptyForm(user?.phone ?? ''))
   const [fieldErrors, setFieldErrors] = useState({})
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [requests, setRequests] = useState([])
+  const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
+  const [ordersLoading, setOrdersLoading] = useState(false)
   const [busy, setBusy] = useState(false)
 
   const loadRequests = async () => {
@@ -29,8 +53,21 @@ export default function Customer() {
     }
   }
 
+  const loadOrders = async () => {
+    setOrdersLoading(true)
+    try {
+      const data = await ordersApi.list()
+      setOrders(data.orders || [])
+    } catch (loadError) {
+      console.warn('Không thể tải đơn dịch vụ:', loadError)
+    } finally {
+      setOrdersLoading(false)
+    }
+  }
+
   useEffect(() => {
     loadRequests()
+    loadOrders()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -79,11 +116,50 @@ export default function Customer() {
             Xin chào
             {user?.displayName
               ? `, ${user.displayName.trim().split(' ').slice(-1)[0]}`
-              : ''}{' '}
-            👋
+              : ''}
           </h1>
-          <p>Gửi yêu cầu sửa chữa và theo dõi tiến độ ngay tại đây.</p>
+          <p>Quản lý yêu cầu sửa chữa và các đơn dịch vụ điện nước tại đây.</p>
         </header>
+
+        {/* Thanh chuyển tab + lối tắt */}
+        <div className="customer-toolbar">
+          <div className="dash-tabs">
+            <button
+              type="button"
+              className={
+                activeTab === 'requests'
+                  ? 'dash-tabs__item is-active'
+                  : 'dash-tabs__item'
+              }
+              onClick={() => setActiveTab('requests')}
+            >
+              Yêu cầu sửa chữa
+              <span className="dash-tabs__count">{requests.length}</span>
+            </button>
+            <button
+              type="button"
+              className={
+                activeTab === 'orders' ? 'dash-tabs__item is-active' : 'dash-tabs__item'
+              }
+              onClick={() => setActiveTab('orders')}
+            >
+              Đơn dịch vụ
+              <span className="dash-tabs__count">{orders.length}</span>
+            </button>
+          </div>
+
+          <div className="customer-toolbar__actions">
+            <Link to="/profile" className="btn btn--outline btn--sm">
+              Thông tin cá nhân
+            </Link>
+            <Link to="/report" className="btn btn--outline btn--sm">
+              Báo cáo
+            </Link>
+            <Link to="/services" className="btn btn--primary btn--sm">
+              + Đặt lịch dịch vụ mới
+            </Link>
+          </div>
+        </div>
 
         {error && (
           <div className="alert alert--error" role="alert">
@@ -91,9 +167,157 @@ export default function Customer() {
           </div>
         )}
 
-        <div className="req-grid">
+        {activeTab === 'requests' ? (
+          <div className="req-grid">
+            <section className="card">
+              <h2 className="card__title">Gửi yêu cầu sửa chữa</h2>
+
+              {success && (
+                <div className="alert alert--success" role="status">
+                  <span>{success}</span>
+                </div>
+              )}
+
+              <form className="form" onSubmit={handleSubmit} noValidate>
+                <Field
+                  id="req-device"
+                  label="Loại thiết bị"
+                  name="device"
+                  placeholder="VD: Máy giặt, Bơm nước, Aptomat, Ống nước…"
+                  value={form.device}
+                  onChange={(event) => update('device', event.target.value)}
+                  error={fieldErrors.device}
+                />
+
+                <div className={fieldErrors.issue ? 'field field--error' : 'field'}>
+                  <label htmlFor="req-issue">Mô tả lỗi</label>
+                  <div className="field__control">
+                    <textarea
+                      id="req-issue"
+                      name="issue"
+                      rows="4"
+                      placeholder="VD: Rò rỉ nước ngầm, chập điện nhảy át liên tục…"
+                      value={form.issue}
+                      onChange={(event) => update('issue', event.target.value)}
+                      aria-invalid={fieldErrors.issue ? 'true' : undefined}
+                    />
+                  </div>
+                  {fieldErrors.issue && (
+                    <span className="field__error" role="alert">
+                      {fieldErrors.issue}
+                    </span>
+                  )}
+                </div>
+
+                <Field
+                  id="req-address"
+                  label="Địa chỉ"
+                  name="address"
+                  placeholder="Số nhà, đường, phường/xã…"
+                  value={form.address}
+                  onChange={(event) => update('address', event.target.value)}
+                  error={fieldErrors.address}
+                />
+
+                <Field
+                  id="req-phone"
+                  label="Số điện thoại liên hệ"
+                  name="phone"
+                  type="tel"
+                  placeholder="VD: 0912 345 678"
+                  value={form.phone}
+                  onChange={(event) => update('phone', event.target.value)}
+                  error={fieldErrors.phone}
+                />
+
+                <button className="btn btn--primary" type="submit" disabled={busy}>
+                  {busy ? 'Đang gửi…' : 'Gửi yêu cầu'}
+                </button>
+              </form>
+            </section>
+
+            <section className="card">
+              <h2 className="card__title">
+                Yêu cầu của tôi ({requests.length})
+              </h2>
+
+              {loading ? (
+                <p className="card__empty">Đang tải danh sách…</p>
+              ) : requests.length === 0 ? (
+                <p className="card__empty">
+                  Bạn chưa có yêu cầu nào. Hãy gửi yêu cầu đầu tiên ở bên cạnh!
+                </p>
+              ) : (
+                <ul className="req-list customer-list">
+                  {requests.map((request) => {
+                    const scheduleDate = firstValue(
+                      request.scheduledDate,
+                      request.appointmentDate,
+                    )
+                    const scheduleTime = firstValue(
+                      request.scheduledTime,
+                      request.appointmentTime,
+                    )
+
+                    return (
+                      <li key={request.id}>
+                        <Link
+                          to={`/customer/requests/${encodeURIComponent(request.id)}`}
+                          className="req-item req-item--link"
+                        >
+                          <div className="req-item__top">
+                            <div>
+                              <strong>
+                                {firstValue(
+                                  request.service,
+                                  request.serviceName,
+                                  request.device,
+                                  'Yêu cầu sửa chữa',
+                                )}
+                              </strong>
+                              {scheduleDate && (
+                                <div className="req-item__schedule">
+                                  Hẹn: {scheduleDate}
+                                  {scheduleTime ? ` (${scheduleTime})` : ''}
+                                </div>
+                              )}
+                            </div>
+                            <StatusBadge status={request.status} />
+                          </div>
+
+                          <p className="req-item__issue">{request.issue}</p>
+                          <p className="req-item__meta">Địa chỉ: {request.address}</p>
+
+                          <div className="req-item__foot">
+                            <span className="req-item__date">
+                              Gửi lúc: {fmtDate(request.createdAt)}
+                            </span>
+                            <span className="req-item__cta">
+                              Xem chi tiết <span aria-hidden="true">→</span>
+                            </span>
+                          </div>
+                        </Link>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </section>
+          </div>
+        ) : (
+          /* Tab Đơn dịch vụ */
           <section className="card">
-            <h2 className="card__title">Gửi yêu cầu sửa chữa</h2>
+            <div className="toolbar">
+              <h2 className="card__title">Đơn dịch vụ của tôi ({orders.length})</h2>
+              <button
+                type="button"
+                className="btn btn--outline btn--sm"
+                onClick={loadOrders}
+                disabled={ordersLoading}
+              >
+                {ordersLoading ? 'Đang tải lại…' : 'Làm mới'}
+              </button>
+            </div>
 
             {success && (
               <div className="alert alert--success" role="status">
@@ -101,105 +325,71 @@ export default function Customer() {
               </div>
             )}
 
-            <form className="form" onSubmit={handleSubmit} noValidate>
-              <Field
-                id="req-device"
-                label="Loại thiết bị"
-                name="device"
-                placeholder="VD: Máy giặt, Tivi, Điều hòa…"
-                value={form.device}
-                onChange={(event) => update('device', event.target.value)}
-                error={fieldErrors.device}
-              />
-
-              <div
-                className={
-                  fieldErrors.issue ? 'field field--error' : 'field'
-                }
-              >
-                <label htmlFor="req-issue">Mô tả lỗi</label>
-                <div className="field__control">
-                  <textarea
-                    id="req-issue"
-                    name="issue"
-                    rows="4"
-                    placeholder="VD: Máy giặt kêu to, không vắt được nước…"
-                    value={form.issue}
-                    onChange={(event) => update('issue', event.target.value)}
-                    aria-invalid={fieldErrors.issue ? 'true' : undefined}
-                  />
-                </div>
-                {fieldErrors.issue && (
-                  <span className="field__error" role="alert">
-                    {fieldErrors.issue}
-                  </span>
-                )}
+            {ordersLoading ? (
+              <p className="card__empty">Đang tải danh sách đơn dịch vụ…</p>
+            ) : orders.length === 0 ? (
+              <div className="empty-block">
+                <p className="card__empty">
+                  Bạn chưa có đơn dịch vụ nào.
+                </p>
+                <Link to="/services" className="btn btn--primary">
+                  Khám phá dịch vụ sửa chữa
+                </Link>
               </div>
-
-              <Field
-                id="req-address"
-                label="Địa chỉ"
-                name="address"
-                placeholder="Số nhà, đường, phường/xã…"
-                value={form.address}
-                onChange={(event) => update('address', event.target.value)}
-                error={fieldErrors.address}
-              />
-
-              <Field
-                id="req-phone"
-                label="Số điện thoại liên hệ"
-                name="phone"
-                type="tel"
-                placeholder="VD: 0912 345 678"
-                value={form.phone}
-                onChange={(event) => update('phone', event.target.value)}
-                error={fieldErrors.phone}
-              />
-
-              <button className="btn btn--primary" type="submit" disabled={busy}>
-                {busy ? 'Đang gửi…' : 'Gửi yêu cầu'}
-              </button>
-            </form>
-          </section>
-
-          <section className="card">
-            <h2 className="card__title">
-              Yêu cầu của tôi ({requests.length})
-            </h2>
-
-            {loading ? (
-              <p className="card__empty">Đang tải danh sách…</p>
-            ) : requests.length === 0 ? (
-              <p className="card__empty">
-                Bạn chưa có yêu cầu nào. Hãy gửi yêu cầu đầu tiên ở bên cạnh!
-              </p>
             ) : (
-              <ul className="req-list">
-                {requests.map((request) => (
-                  <li key={request.id} className="req-item">
-                    <div className="req-item__top">
-                      <strong>{request.device}</strong>
-                      <StatusBadge status={request.status} />
-                    </div>
-                    <p className="req-item__issue">{request.issue}</p>
-                    <p className="req-item__meta">📍 {request.address}</p>
-                    <div className="req-item__foot">
-                      <span className="req-item__date">
-                        {fmtDate(request.createdAt)}
-                      </span>
-                      {request.status !== 'pending' && request.repairmanName && (
-                        <span className="req-item__staff">
-                          Phụ trách: {request.repairmanName}
-                        </span>
-                      )}
-                    </div>
-                  </li>
-                ))}
+              <ul className="req-list customer-list">
+                {orders.map((ord) => {
+                  const statusInfo = ORDER_STATUS_LABELS[ord.status] || {
+                    label: ord.status,
+                    cls: 'status--pending',
+                  }
+                  const total = ord.finalAmount ?? ord.totalAmount ?? 0
+
+                  return (
+                    <li key={ord.id}>
+                      <Link
+                        to={`/customer/orders/${encodeURIComponent(ord.id)}`}
+                        className="req-item req-item--link"
+                      >
+                        <div className="req-item__top">
+                          <div>
+                            <strong>Đơn hàng #{ord.id}</strong>
+                            <div className="req-item__schedule">
+                              Đặt lúc: {fmtDate(ord.createdAt)}
+                            </div>
+                          </div>
+                          <span className={`status ${statusInfo.cls}`}>
+                            {statusInfo.label}
+                          </span>
+                        </div>
+
+                        <p className="req-item__meta">
+                          {(ord.items?.length ?? 0)} dịch vụ ·{' '}
+                          {PAYMENT_METHOD_LABEL[ord.paymentMethod] ||
+                            'Thanh toán khi nhận (COD)'}
+                        </p>
+
+                        <div className="req-item__foot">
+                          <span className="req-item__date">
+                            Người nhận: {ord.receiverName || '—'}
+                          </span>
+                          <span className="req-item__right">
+                            <strong className="req-item__amount">
+                              {fmtMoney(total)}
+                            </strong>
+                            <span className="req-item__cta">
+                              Xem chi tiết <span aria-hidden="true">→</span>
+                            </span>
+                          </span>
+                        </div>
+                      </Link>
+                    </li>
+                  )
+                })}
               </ul>
             )}
           </section>
-        </div>
+        )}
       </div>
     </DashboardLayout>
   )

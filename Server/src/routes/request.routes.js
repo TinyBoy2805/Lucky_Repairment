@@ -1,13 +1,14 @@
 import { Router } from 'express'
 import { requireAuth } from '../middlewares/auth.middleware.js'
-import { index, store, update } from '../controllers/request.controller.js'
+import { index, show, store, update } from '../controllers/request.controller.js'
 
 const router = Router()
 
-// Mọi thao tác với yêu cầu sửa chữa đều cần đăng nhập
+// Tất cả thao tác với yêu cầu sửa chữa (tạo đơn, xem đơn, nhận việc) đều bắt buộc đăng nhập
 router.use(requireAuth)
 
 router.get('/', index)
+router.get('/:id', show)
 router.post('/', store)
 router.patch('/:id', update)
 
