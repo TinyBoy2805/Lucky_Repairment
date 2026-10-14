@@ -1,4 +1,4 @@
-import { firestore } from '../config/firebase.js'
+import { db, firestore } from '../config/firebase.js'
 import { badRequest, conflict, forbidden, notFound } from '../utils/http-error.js'
 
 export const INITIAL_SERVICES = [
@@ -295,6 +295,46 @@ export const REPAIR_SERVICES = INITIAL_SERVICES
 
 const servicesCol = () => firestore.collection('services')
 
+// Số dịch vụ tối đa trả về cho mỗi mục trên trang chủ.
+const HOME_SECTION_LIMIT = 4
+
+/** Đọc toàn bộ đơn dịch vụ từ Realtime Database (bỏ qua schema). */
+async function readOrders() {
+  const snapshot = await db.ref('orders').once('value')
+  if (!snapshot.exists()) return []
+  return Object.entries(snapshot.val())
+    .filter(([id]) => id !== '_schema')
+    .map(([id, data]) => ({ id, ...data }))
+}
+
+/** Cộng dồn số lượng đã bán theo productId từ các đơn không bị hủy. */
+function salesByProduct(orders) {
+  const counts = {}
+  for (const order of orders) {
+    if (order.status === 'cancelled') continue
+    const items = Array.isArray(order.items) ? order.items : Object.values(order.items || {})
+    for (const item of items) {
+      const id = item?.productId
+      if (!id) continue
+      counts[id] = (counts[id] || 0) + (Number(item.quantity) || 1)
+    }
+  }
+  return counts
+}
+
+/** Danh sách productId khách đã từng đặt (đơn không hủy). */
+function purchasedProductIds(orders, uid) {
+  const ids = new Set()
+  for (const order of orders) {
+    if (order.customerUid !== uid || order.status === 'cancelled') continue
+    const items = Array.isArray(order.items) ? order.items : Object.values(order.items || {})
+    for (const item of items) {
+      if (item?.productId) ids.add(item.productId)
+    }
+  }
+  return ids
+}
+
 /**
  * Đảm bảo collection "services" đã có dữ liệu trên Cloud Firestore.
  * Nếu chưa có (collection trống), hệ thống tự động batch nạp toàn bộ danh sách dịch vụ lên Firestore.
@@ -348,11 +388,17 @@ export async function listRepairServices({ category, search, sort, ownerUid, act
     list = list.filter((s) => s.category === category)
   }
 
-  // Sắp xếp theo giá khởi điểm, mặc định giữ thứ tự hiển thị ổn định
+  // Sắp xếp theo giá khởi điểm, lượt bán hoặc giữ thứ tự hiển thị ổn định
   if (sort === 'price_asc') {
     list.sort((a, b) => (Number(a.startingPrice) || 0) - (Number(b.startingPrice) || 0))
   } else if (sort === 'price_desc') {
     list.sort((a, b) => (Number(b.startingPrice) || 0) - (Number(a.startingPrice) || 0))
+  } else if (sort === 'sales') {
+    const sales = salesByProduct(await readOrders())
+    list.sort(
+      (a, b) =>
+        (sales[b.id] || 0) - (sales[a.id] || 0) || (a.id || '').localeCompare(b.id || ''),
+    )
   } else {
     const initialOrder = INITIAL_SERVICES.map((s) => s.id)
     list.sort((a, b) => {
@@ -554,4 +600,82 @@ export async function deleteRepairService(id, actor = null) {
 
   await docRef.delete()
   return { success: true, id }
+}
+
+/** Tăng lượt xem của 1 dịch vụ (không đụng `updatedAt` để không ảnh hưởng sắp xếp mới nhất). */
+export async function incrementServiceViews(id) {
+  if (!id) throw badRequest('Thiếu mã dịch vụ.')
+
+  const docRef = servicesCol().doc(id)
+  const doc = await docRef.get()
+  if (!doc.exists) throw notFound('Không tìm thấy dịch vụ sửa chữa này.')
+
+  const views = (Number(doc.data().views) || 0) + 1
+  await docRef.set({ views }, { merge: true })
+  return { id, views }
+}
+
+/**
+ * Dữ liệu 4 mục hiển thị trên trang chủ:
+ * - bestSellers: bán chạy nhất (theo số lượng đã bán trong đơn chưa hủy).
+ * - newest: mới thêm gần đây (theo createdAt).
+ * - mostViewed: xem nhiều nhất (theo `views`).
+ * - recommended: gợi ý — ưu tiên danh mục khách đã từng đặt (nếu đăng nhập),
+ *   sau đó bù bằng dịch vụ bán chạy / xem nhiều để luôn đủ số lượng.
+ */
+export async function getHomeSections(actor = null) {
+  const services = await listRepairServices({})
+  const orders = await readOrders()
+  const sales = salesByProduct(orders)
+
+  const withStats = services.map((service) => ({
+    ...service,
+    salesCount: sales[service.id] || 0,
+  }))
+
+  const bySales = [...withStats].sort(
+    (a, b) => b.salesCount - a.salesCount || (a.title || '').localeCompare(b.title || ''),
+  )
+  const bestSellers = bySales.filter((service) => service.salesCount > 0).slice(0, HOME_SECTION_LIMIT)
+
+  const newest = [...withStats]
+    .sort((a, b) => (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0))
+    .slice(0, HOME_SECTION_LIMIT)
+
+  const mostViewed = [...withStats]
+    .sort(
+      (a, b) =>
+        (Number(b.views) || 0) - (Number(a.views) || 0) ||
+        (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0),
+    )
+    .slice(0, HOME_SECTION_LIMIT)
+
+  const purchasedIds = actor?.uid ? purchasedProductIds(orders, actor.uid) : new Set()
+  const purchasedCategories = new Set(
+    services
+      .filter((service) => purchasedIds.has(service.id))
+      .map((service) => service.category),
+  )
+
+  const recommended = withStats.filter(
+    (service) =>
+      purchasedCategories.has(service.category) && !purchasedIds.has(service.id),
+  )
+
+  if (recommended.length < HOME_SECTION_LIMIT) {
+    const seen = new Set([...recommended.map((service) => service.id), ...purchasedIds])
+    for (const filler of bySales) {
+      if (recommended.length >= HOME_SECTION_LIMIT) break
+      if (seen.has(filler.id)) continue
+      recommended.push(filler)
+      seen.add(filler.id)
+    }
+  }
+
+  return {
+    bestSellers,
+    newest,
+    mostViewed,
+    recommended: recommended.slice(0, HOME_SECTION_LIMIT),
+  }
 }

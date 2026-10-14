@@ -156,7 +156,10 @@ export default function AdminRatings() {
                 </p>
 
                 <div className="req-item__foot">
-                  <span className="req-item__date">Đơn: {rating.requestId}</span>
+                  <span className="req-item__date">
+                    {(rating.targetType === 'order' ? 'Đơn dịch vụ: ' : 'Yêu cầu: ') +
+                      (rating.orderId || rating.requestId || '—')}
+                  </span>
                   <button
                     className="btn btn--outline btn--sm"
                     type="button"

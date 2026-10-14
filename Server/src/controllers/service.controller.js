@@ -2,7 +2,9 @@ import { asyncHandler } from '../middlewares/error.middleware.js'
 import {
   createRepairService,
   deleteRepairService,
+  getHomeSections,
   getRepairService,
+  incrementServiceViews,
   listRepairServices,
   updateRepairService,
 } from '../services/repair-service.service.js'
@@ -13,6 +15,18 @@ export const index = asyncHandler(async (req, res) => {
   // req.profile chỉ có khi optionalAuth nhận được token hợp lệ ("?ownerUid=mine")
   const services = await listRepairServices({ category, search, sort, ownerUid, actor: req.profile })
   res.json({ services, total: services.length })
+})
+
+/** GET /api/services/home — 4 mục hiển thị trên trang chủ */
+export const home = asyncHandler(async (req, res) => {
+  const sections = await getHomeSections(req.profile)
+  res.json({ home: sections })
+})
+
+/** POST /api/services/:id/view — Tăng lượt xem của 1 dịch vụ */
+export const view = asyncHandler(async (req, res) => {
+  const result = await incrementServiceViews(req.params.id)
+  res.json(result)
 })
 
 /** GET /api/services/:id — Chi tiết dịch vụ sửa chữa từ Firebase */

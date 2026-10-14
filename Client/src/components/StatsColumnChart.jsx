@@ -31,9 +31,33 @@ function formatLabel(label) {
   return label
 }
 
+/** Mốc thời gian đầu ngày (00:00:00.000) theo giờ địa phương. */
+function dayStart(dateStr) {
+  return new Date(`${dateStr}T00:00:00`).getTime()
+}
+
+/** Mốc thời gian cuối ngày (23:59:59.999) theo giờ địa phương. */
+function dayEnd(dateStr) {
+  return new Date(`${dateStr}T23:59:59.999`).getTime()
+}
+
 export default function StatsColumnChart() {
+  const [mode, setMode] = useState('preset') // 'preset' | 'custom'
   const [range, setRange] = useState('30d')
-  const { data, loading, error } = useAdminList(() => adminApi.stats(range), range)
+  const [from, setFrom] = useState('')
+  const [to, setTo] = useState('')
+
+  const customReady = Boolean(from && to)
+  const customInvalid = customReady && dayStart(from) > dayEnd(to)
+  const useCustom = mode === 'custom' && customReady && !customInvalid
+
+  const params = useCustom ? { from: dayStart(from), to: dayEnd(to) } : { range }
+  const queryKey = useCustom ? `custom:${from}:${to}` : `range:${range}`
+
+  const { data, loading, error } = useAdminList(
+    () => adminApi.stats(params),
+    queryKey,
+  )
 
   const chart = data?.stats?.columnChart
   const rows = (chart?.labels || []).map((label, index) => ({
@@ -50,14 +74,62 @@ export default function StatsColumnChart() {
             <button
               key={option.value}
               type="button"
-              className={`btn btn--sm ${range === option.value ? 'btn--primary' : 'btn--outline'}`}
-              onClick={() => setRange(option.value)}
+              className={`btn btn--sm ${
+                mode === 'preset' && range === option.value
+                  ? 'btn--primary'
+                  : 'btn--outline'
+              }`}
+              onClick={() => {
+                setMode('preset')
+                setRange(option.value)
+              }}
             >
               {option.label}
             </button>
           ))}
+          <button
+            type="button"
+            className={`btn btn--sm ${mode === 'custom' ? 'btn--primary' : 'btn--outline'}`}
+            onClick={() => setMode((current) => (current === 'custom' ? 'preset' : 'custom'))}
+          >
+            Tuỳ chọn
+          </button>
         </div>
       </div>
+
+      {mode === 'custom' && (
+        <div className="range-tabs range-tabs--sub" style={{ alignItems: 'center' }}>
+          <label style={{ fontSize: 13, color: '#475569' }}>
+            Từ ngày
+            <input
+              className="admin-input"
+              type="date"
+              style={{ marginLeft: 8 }}
+              value={from}
+              max={to || undefined}
+              onChange={(event) => setFrom(event.target.value)}
+            />
+          </label>
+          <label style={{ fontSize: 13, color: '#475569' }}>
+            Đến ngày
+            <input
+              className="admin-input"
+              type="date"
+              style={{ marginLeft: 8 }}
+              value={to}
+              min={from || undefined}
+              onChange={(event) => setTo(event.target.value)}
+            />
+          </label>
+        </div>
+      )}
+
+      {mode === 'custom' && customInvalid && (
+        <p className="alert alert--error">Ngày bắt đầu phải trước ngày kết thúc.</p>
+      )}
+      {mode === 'custom' && !customReady && !customInvalid && (
+        <p className="muted">Chọn cả ngày bắt đầu và ngày kết thúc để xem biểu đồ.</p>
+      )}
 
       {loading && <p className="muted">Đang tải dữ liệu…</p>}
       {!loading && error && <p className="alert alert--error">{error}</p>}

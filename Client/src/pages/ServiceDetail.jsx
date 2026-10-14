@@ -25,6 +25,9 @@ export default function ServiceDetail() {
         setService(srv)
         setError('')
 
+        // Ghi nhận lượt xem (không chặn giao diện nếu lỗi)
+        servicesApi.view(id).catch(() => {})
+
         // Tải các dịch vụ liên quan
         const { services: all } = await servicesApi.list({ category: srv.category })
         if (!isMounted) return
