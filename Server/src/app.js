@@ -9,6 +9,7 @@ import requestRoutes from './routes/request.routes.js'
 import categoryRoutes from './routes/category.routes.js'
 import ratingRoutes from './routes/rating.routes.js'
 import walletRoutes from './routes/wallet.routes.js'
+import loyaltyRoutes from './routes/loyalty.routes.js'
 import transactionRoutes from './routes/transaction.routes.js'
 import paymentRoutes from './routes/payment.routes.js'
 import chatRoutes from './routes/chat.routes.js'
@@ -17,6 +18,7 @@ import reportRoutes from './routes/report.routes.js'
 import productRoutes from './routes/product.routes.js'
 import orderRoutes from './routes/order.routes.js'
 import serviceRoutes from './routes/service.routes.js'
+import commentRoutes from './routes/comment.routes.js'
 import settingsRoutes from './routes/settings.routes.js'
 import repairmanRoutes from './routes/repairman.routes.js'
 
@@ -41,9 +43,11 @@ export function createApp() {
   app.use('/api/requests', requestRoutes)
   app.use('/api/bookings', requestRoutes)
   app.use('/api/services', serviceRoutes)
+  app.use('/api/comments', commentRoutes)
   app.use('/api/categories', categoryRoutes)
   app.use('/api/ratings', ratingRoutes)
   app.use('/api/wallet', walletRoutes)
+  app.use('/api/loyalty', loyaltyRoutes)
   app.use('/api/transactions', transactionRoutes)
   app.use('/api/payments', paymentRoutes)
   app.use('/api/chats', chatRoutes)

@@ -439,3 +439,270 @@
     margin-bottom: 24px;
   }
 }
+
+// ===== Q&A / Bình luận dịch vụ =====
+.service-qa-section {
+  margin-top: 48px;
+}
+
+.qa-form-card {
+  background: #f8fafc;
+  border: 1px solid $border;
+  border-radius: $radius;
+  padding: 20px;
+  margin-bottom: 32px;
+}
+
+.qa-form {
+  &__header {
+    margin-bottom: 12px;
+  }
+
+  &__user {
+    font-size: 13px;
+    color: $text-muted;
+
+    strong {
+      color: $navy;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 10px;
+  }
+}
+
+.qa-login-prompt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: $text-muted;
+  font-size: 14px;
+
+  svg {
+    color: $brand;
+    flex-shrink: 0;
+  }
+
+  p {
+    margin: 0;
+  }
+}
+
+.qa-comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.qa-empty {
+  text-align: center;
+  padding: 40px 20px;
+  background: #f8fafc;
+  border-radius: $radius;
+  border: 1px dashed $border;
+
+  p {
+    font-size: 15px;
+    font-weight: 600;
+    color: $navy;
+    margin-bottom: 4px;
+  }
+
+  span {
+    font-size: 13px;
+    color: $text-muted;
+  }
+}
+
+.qa-comment-item {
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 20px;
+
+  &:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+}
+
+.qa-comment-main {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.qa-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 15px;
+  color: #fff;
+  background: #64748b;
+  flex-shrink: 0;
+
+  &--sm {
+    width: 32px;
+    height: 32px;
+    font-size: 13px;
+  }
+
+  &--admin {
+    background: #ea580c;
+  }
+
+  &--repairman {
+    background: $brand;
+  }
+
+  &--customer {
+    background: #0284c7;
+  }
+}
+
+.qa-comment-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.qa-comment-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.qa-author-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: $navy;
+}
+
+.comment-role {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+
+  &--admin {
+    background: #ffedd5;
+    color: #c2410c;
+  }
+
+  &--repairman {
+    background: #e0e7ff;
+    color: #3730a3;
+  }
+
+  &--customer {
+    background: #f1f5f9;
+    color: #475569;
+  }
+}
+
+.qa-time {
+  font-size: 12px;
+  color: $text-light;
+  margin-left: auto;
+}
+
+.qa-content {
+  font-size: 14px;
+  line-height: 1.6;
+  color: $text;
+  margin-bottom: 8px;
+  word-break: break-word;
+}
+
+.qa-comment-actions {
+  display: flex;
+  gap: 14px;
+  margin-top: 4px;
+}
+
+.qa-btn-action {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: $brand;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &--danger {
+    color: #ef4444;
+
+    &:hover {
+      color: #b91c1c;
+    }
+  }
+}
+
+.qa-reply-form {
+  margin-top: 12px;
+  background: #f8fafc;
+  border: 1px solid $border;
+  border-radius: $radius-sm;
+  padding: 12px;
+
+  textarea {
+    width: 100%;
+    border: 1px solid $border;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 13px;
+    font-family: inherit;
+    resize: vertical;
+    outline: none;
+
+    &:focus {
+      border-color: $brand;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 8px;
+  }
+}
+
+.qa-replies-list {
+  margin-top: 14px;
+  margin-left: 10px;
+  padding-left: 16px;
+  border-left: 2px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.qa-reply-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: #f8fafc;
+  padding: 10px 14px;
+  border-radius: $radius-sm;
+}
+
+.qa-reply-body {
+  flex: 1;
+  min-width: 0;
+}
+

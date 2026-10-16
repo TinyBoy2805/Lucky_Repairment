@@ -659,3 +659,250 @@
   flex-wrap: wrap;
   gap: 10px;
 }
+
+// ===== Hệ thống Điểm thưởng (Loyalty Points) =====
+.loyalty-points-badge {
+  background: #f59e0b !important;
+  color: #fff !important;
+  font-weight: 700;
+}
+
+.loyalty-container {
+  display: grid;
+  gap: 24px;
+}
+
+.loyalty-card {
+  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 60%, #4338ca 100%);
+  color: #fff;
+  border: none;
+  box-shadow: 0 10px 25px rgba(49, 46, 129, 0.15);
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  &__icon {
+    width: 48px;
+    height: 48px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    font-size: 24px;
+    flex-shrink: 0;
+  }
+
+  &__title {
+    color: #fff;
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0 0 4px;
+  }
+
+  &__desc {
+    color: #c7d2fe;
+    font-size: 13px;
+    margin: 0;
+  }
+
+  &__points {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 16px 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: $radius;
+    margin-bottom: 24px;
+  }
+
+  &__number {
+    font-size: 40px;
+    font-weight: 800;
+    color: #fbbf24;
+    line-height: 1;
+  }
+
+  &__unit {
+    font-size: 16px;
+    font-weight: 600;
+    color: #e0e7ff;
+  }
+
+  &__equiv {
+    margin-left: auto;
+    font-size: 16px;
+    font-weight: 700;
+    color: #4ade80;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 4px 12px;
+    border-radius: 999px;
+  }
+
+  &__rules {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+
+    @media (min-width: 768px) {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+}
+
+.loyalty-rule-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 12px 14px;
+  border-radius: $radius-sm;
+
+  &__icon {
+    font-size: 18px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  strong {
+    display: block;
+    font-size: 13px;
+    color: #fff;
+    margin-bottom: 2px;
+  }
+
+  p {
+    font-size: 12px;
+    color: #c7d2fe;
+    margin: 0;
+    line-height: 1.4;
+  }
+}
+
+.loyalty-logs-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.loyalty-log-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  background: #f8fafc;
+  border: 1px solid $border;
+  border-radius: $radius;
+  transition: background $transition;
+
+  &:hover {
+    background: #fff;
+  }
+
+  &__icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    font-size: 18px;
+    background: #f1f5f9;
+    flex-shrink: 0;
+
+    &--earn {
+      background: #dcfce7;
+    }
+
+    &--redeem {
+      background: #fef3c7;
+    }
+
+    &--refund,
+    &--refund_redeem {
+      background: #fee2e2;
+    }
+  }
+
+  &__info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__title {
+    font-size: 14px;
+    font-weight: 600;
+    color: $navy;
+    display: block;
+    margin-bottom: 3px;
+  }
+
+  &__meta {
+    font-size: 12px;
+    color: $text-muted;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+
+    a {
+      color: $brand;
+      font-weight: 500;
+      text-decoration: underline;
+    }
+  }
+
+  &__points {
+    font-size: 16px;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+}
+
+// Form dùng điểm thưởng lúc đặt hàng
+.loyalty-redeem-field {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: $radius-sm;
+  padding: 12px 14px;
+  margin-top: 10px;
+
+  label {
+    font-size: 13px;
+    color: #92400e;
+    margin-bottom: 8px;
+    display: block;
+  }
+}
+
+.loyalty-available {
+  color: #b45309;
+}
+
+.loyalty-redeem-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+
+  input {
+    flex: 1;
+    border: 1px solid #d97706 !important;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 13px;
+    background: #fff;
+  }
+}
+
+.loyalty-redeem-note {
+  font-size: 12px;
+  color: #b45309;
+  margin: 6px 0 0;
+  font-weight: 500;
+}
+
