@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useCart } from '../context/useCart.js'
 import { ordersApi, paymentsApi } from '../lib/orders.js'
+import { loyaltyApi } from '../lib/loyalty.js'
 import { computeDiscount, isValidPromoCode, normalizePromoCode } from '../lib/promo.js'
 import { fmtMoney } from '../lib/format.js'
 
@@ -23,6 +24,8 @@ export default function CartCheckoutModal({ isOpen, items, user, onClose, onOrde
     paymentMethod: 'cod',
     promoCode: '',
   }))
+  const [loyaltyPoints, setLoyaltyPoints] = useState(0)
+  const [pointsToRedeem, setPointsToRedeem] = useState(0)
   const [errors, setErrors] = useState({})
   const [busy, setBusy] = useState(false)
   const [createdOrder, setCreatedOrder] = useState(null)
@@ -30,6 +33,19 @@ export default function CartCheckoutModal({ isOpen, items, user, onClose, onOrde
   const [paySession, setPaySession] = useState(null)
   const [payBusy, setPayBusy] = useState(false)
   const [payError, setPayError] = useState('')
+
+  useEffect(() => {
+    if (!user || !isOpen) return
+    loyaltyApi
+      .getPoints()
+      .then((res) => {
+        const pts = Number(res?.points ?? res?.loyalty?.points ?? res?.data?.points ?? 0)
+        setLoyaltyPoints(pts)
+      })
+      .catch((err) => {
+        console.warn('Lỗi lấy điểm:', err)
+      })
+  }, [user, isOpen])
 
   if (!isOpen) return null
 
@@ -78,6 +94,7 @@ export default function CartCheckoutModal({ isOpen, items, user, onClose, onOrde
         })),
         promoCode,
         discountAmount,
+        pointsToRedeem: pointsToRedeem > 0 ? pointsToRedeem : undefined,
       }
 
       const res = await ordersApi.create(orderPayload)
@@ -163,8 +180,20 @@ export default function CartCheckoutModal({ isOpen, items, user, onClose, onOrde
               </div>
               {createdOrder.discountAmount > 0 && (
                 <div>
-                  <span>Giảm giá:</span>
+                  <span>Giảm giá mã:</span>
                   <strong>-{fmtMoney(createdOrder.discountAmount)}</strong>
+                </div>
+              )}
+              {createdOrder.pointsDiscount > 0 && (
+                <div>
+                  <span>Giảm từ điểm thưởng:</span>
+                  <strong>-{fmtMoney(createdOrder.pointsDiscount)}</strong>
+                </div>
+              )}
+              {createdOrder.pointsToEarn > 0 && (
+                <div style={{ background: '#f0fdf4', padding: '6px 10px', borderRadius: 6, marginTop: 4 }}>
+                  <span style={{ color: '#16a34a' }}>Điểm thưởng tích luỹ dự kiến:</span>
+                  <strong style={{ color: '#16a34a', marginLeft: 6 }}>+{createdOrder.pointsToEarn} điểm</strong>
                 </div>
               )}
             </div>
@@ -370,6 +399,60 @@ export default function CartCheckoutModal({ isOpen, items, user, onClose, onOrde
                     <span className="field__error">{errors.promoCode}</span>
                   )}
                 </div>
+
+                {/* Quy đổi điểm thưởng nếu đã đăng nhập */}
+                {user ? (
+                  <div className="field loyalty-redeem-field">
+                    <label>
+                      ⭐ Điểm thưởng tích luỹ:{' '}
+                      <strong className="loyalty-available">{loyaltyPoints} điểm</strong>
+                      {loyaltyPoints > 0 && ` (quy đổi tối đa 30% giá trị đơn = ${fmtMoney(loyaltyPoints * 1000)})`}
+                    </label>
+
+                    {loyaltyPoints > 0 ? (
+                      <>
+                        <div className="loyalty-redeem-row">
+                          <input
+                            type="number"
+                            min="0"
+                            max={Math.min(loyaltyPoints, Math.floor((totalAmount * 0.3) / 1000))}
+                            value={pointsToRedeem || ''}
+                            onChange={(e) => {
+                              const val = Math.max(0, Number(e.target.value) || 0)
+                              const maxPts = Math.min(loyaltyPoints, Math.floor((totalAmount * 0.3) / 1000))
+                              setPointsToRedeem(Math.min(val, maxPts))
+                            }}
+                            placeholder="Nhập số điểm cần dùng..."
+                          />
+                          <button
+                            type="button"
+                            className="btn btn--outline btn--sm"
+                            onClick={() => {
+                              const maxPts = Math.min(loyaltyPoints, Math.floor((totalAmount * 0.3) / 1000))
+                              setPointsToRedeem(maxPts)
+                            }}
+                          >
+                            Dùng tối đa
+                          </button>
+                        </div>
+                        {pointsToRedeem > 0 ? (
+                          <p className="loyalty-redeem-note">
+                            🎁 Đổi {pointsToRedeem} điểm giảm ngay: <strong>{fmtMoney(pointsToRedeem * 1000)}</strong>
+                          </p>
+                        ) : (
+                          <p className="loyalty-redeem-note" style={{ color: '#64748b' }}>
+                            * 1 điểm = 1.000 VNĐ. Nhập số điểm hoặc bấm "Dùng tối đa" để trừ tiền đơn hàng.
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <p className="loyalty-redeem-note" style={{ color: '#64748b' }}>
+                        Bạn chưa có điểm thưởng. Hoàn tất đơn này bạn sẽ tích lũy được:{' '}
+                        <strong style={{ color: '#16a34a' }}>+{Math.floor(totalAmount / 10000)} điểm</strong> (1 điểm / 10.000 VNĐ)!
+                      </p>
+                    )}
+                  </div>
+                ) : null}
               </div>
 
               {/* Bảng tính tổng tiền */}
@@ -384,9 +467,15 @@ export default function CartCheckoutModal({ isOpen, items, user, onClose, onOrde
                     <span>-{fmtMoney(discountPreview)}</span>
                   </div>
                 )}
+                {pointsToRedeem > 0 && (
+                  <div className="order-pricing-row">
+                    <span>Giảm từ điểm thưởng ({pointsToRedeem} điểm):</span>
+                    <span>-{fmtMoney(pointsToRedeem * 1000)}</span>
+                  </div>
+                )}
                 <div className="order-pricing-row order-pricing-row--total">
                   <span>Tổng tiền thanh toán:</span>
-                  <strong>{fmtMoney(totalAmount - discountPreview)}</strong>
+                  <strong>{fmtMoney(Math.max(0, totalAmount - discountPreview - pointsToRedeem * 1000))}</strong>
                 </div>
               </div>
 

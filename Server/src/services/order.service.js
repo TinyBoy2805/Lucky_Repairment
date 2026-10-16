@@ -101,7 +101,26 @@ export async function createOrder(customer, input = {}) {
     if (discountAmount > totalAmount) discountAmount = totalAmount
   }
 
-  const finalAmount = Math.max(0, totalAmount - discountAmount)
+  // 3. Quy đổi điểm thưởng nếu khách hàng chọn dùng điểm
+  let pointsDiscount = 0
+  let pointsRedeemed = 0
+  const requestedPoints = Number(input.pointsToRedeem) || 0
+  if (requestedPoints > 0 && customer?.uid && customer.uid !== 'guest') {
+    try {
+      const { redeemPoints, MAX_REDEEM_PERCENT, VND_PER_POINT } = await import('./loyalty.service.js')
+      const maxAllowedPoints = Math.floor((totalAmount * (MAX_REDEEM_PERCENT || 0.3)) / (VND_PER_POINT || 1000))
+      const pointsToUse = Math.min(requestedPoints, maxAllowedPoints)
+      if (pointsToUse > 0) {
+        const redeemRes = await redeemPoints(customer.uid, pointsToUse)
+        pointsRedeemed = redeemRes.pointsUsed
+        pointsDiscount = redeemRes.discountAmount
+      }
+    } catch (e) {
+      console.warn('[loyalty] Lỗi trừ điểm thưởng khi tạo đơn:', e.message)
+    }
+  }
+
+  const finalAmount = Math.max(0, totalAmount - discountAmount - pointsDiscount)
 
   const now = Date.now()
   const orderData = {
@@ -114,6 +133,8 @@ export async function createOrder(customer, input = {}) {
     items,
     totalAmount,
     discountAmount,
+    pointsRedeemed,
+    pointsDiscount,
     finalAmount,
     paymentMethod,
     promo,
@@ -123,7 +144,10 @@ export async function createOrder(customer, input = {}) {
   }
 
   const ref = await ordersRef().push(orderData)
-  return { id: ref.key, ...orderData }
+
+  // Tính điểm thưởng dự kiến nhận được sau khi đơn hoàn thành
+  const pointsToEarn = Math.floor(finalAmount / 10000)
+  return { id: ref.key, ...orderData, pointsToEarn }
 }
 
 /** Lấy danh sách đơn hàng theo quyền xem */
@@ -212,6 +236,17 @@ export async function updateOrderStatus(id, status, actor) {
   }
 
   await orderRef(id).update(patch)
+
+  // Tích điểm cho khách hàng khi đơn hoàn thành
+  if (status === 'completed') {
+    try {
+      const { awardPoints } = await import('./loyalty.service.js')
+      await awardPoints(existing.customerUid, id, existing.finalAmount ?? existing.totalAmount)
+    } catch (e) {
+      console.warn('[loyalty] Lỗi tích điểm:', e.message)
+    }
+  }
+
   return { ...existing, ...patch }
 }
 
@@ -260,6 +295,34 @@ export async function cancelOrder(id, actor) {
     inspectionFee,
     refundMessage: message,
   })
+
+  // Hoàn điểm nếu đơn đã được tích điểm
+  try {
+    const { refundPoints } = await import('./loyalty.service.js')
+    await refundPoints(existing.customerUid, id)
+  } catch (e) {
+    console.warn('[loyalty] Lỗi hoàn điểm:', e.message)
+  }
+
+  // Hoàn lại điểm thưởng nếu khách hàng đã dùng điểm khi đặt đơn này
+  if (existing.pointsRedeemed > 0) {
+    try {
+      const dbRef = db.ref(`loyalty/${existing.customerUid}`)
+      await dbRef.transaction((data) => {
+        const prev = data ?? { points: 0 }
+        return { points: (prev.points ?? 0) + existing.pointsRedeemed, updatedAt: Date.now() }
+      })
+      await db.ref('loyaltyLogs').push({
+        uid: existing.customerUid,
+        orderId: id,
+        type: 'refund_redeem',
+        points: existing.pointsRedeemed,
+        createdAt: Date.now(),
+      })
+    } catch (e) {
+      console.warn('[loyalty] Lỗi hoàn lại điểm đã dùng:', e.message)
+    }
+  }
 
   return {
     success: true,

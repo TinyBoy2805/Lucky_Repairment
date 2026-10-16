@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import ServiceBookingModal from '../components/ServiceBookingModal.jsx'
+import ServiceComments from '../components/ServiceComments.jsx'
 import { servicesApi } from '../lib/services.js'
 import { useCart } from '../context/useCart.js'
+import { useAuth } from '../context/useAuth.js'
 
 export default function ServiceDetail() {
   const { id } = useParams()
   const { addItem } = useCart()
+  const { user } = useAuth()
 
   const [service, setService] = useState(null)
   const [relatedServices, setRelatedServices] = useState([])
@@ -291,6 +294,9 @@ export default function ServiceDetail() {
               </a>
             </div>
           </div>
+
+          {/* Hỏi đáp & Bình luận dịch vụ */}
+          <ServiceComments serviceId={id} user={user} />
 
           {/* Dịch vụ liên quan */}
           {relatedServices.length > 0 && (
