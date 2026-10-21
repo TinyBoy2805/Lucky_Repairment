@@ -6,7 +6,8 @@ import StatusBadge from '../components/StatusBadge.jsx'
 import { useAuth } from '../context/useAuth.js'
 import { requestsApi } from '../lib/requests.js'
 import { ordersApi } from '../lib/orders.js'
-import { fmtDate, fmtMoney } from '../lib/format.js'
+import { loyaltyApi } from '../lib/loyalty.js'
+import { fmtDate, fmtDateTime, fmtMoney } from '../lib/format.js'
 
 const ORDER_STATUS_LABELS = {
   pending: { label: 'Chờ xác nhận', cls: 'status--pending' },
@@ -31,15 +32,18 @@ const firstValue = (...values) =>
 
 export default function Customer() {
   const { user } = useAuth()
-  const [activeTab, setActiveTab] = useState('requests') // 'requests' | 'orders'
+  const [activeTab, setActiveTab] = useState('requests') // 'requests' | 'orders' | 'loyalty'
   const [form, setForm] = useState(() => emptyForm(user?.phone ?? ''))
   const [fieldErrors, setFieldErrors] = useState({})
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [requests, setRequests] = useState([])
   const [orders, setOrders] = useState([])
+  const [loyaltyPoints, setLoyaltyPoints] = useState(0)
+  const [loyaltyLogs, setLoyaltyLogs] = useState([])
   const [loading, setLoading] = useState(true)
   const [ordersLoading, setOrdersLoading] = useState(false)
+  const [loyaltyLoading, setLoyaltyLoading] = useState(false)
   const [busy, setBusy] = useState(false)
 
   const loadRequests = async () => {
@@ -65,9 +69,28 @@ export default function Customer() {
     }
   }
 
+  const loadLoyalty = async () => {
+    setLoyaltyLoading(true)
+    try {
+      const [pointsRes, logsRes] = await Promise.all([
+        loyaltyApi.getPoints(),
+        loyaltyApi.getLogs(),
+      ])
+      const pts = Number(pointsRes?.points ?? pointsRes?.loyalty?.points ?? pointsRes?.data?.points ?? 0)
+      const logs = logsRes?.logs ?? logsRes?.data ?? []
+      setLoyaltyPoints(pts)
+      setLoyaltyLogs(logs)
+    } catch (loadError) {
+      console.warn('Không thể tải điểm thưởng:', loadError)
+    } finally {
+      setLoyaltyLoading(false)
+    }
+  }
+
   useEffect(() => {
     loadRequests()
     loadOrders()
+    loadLoyalty()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -145,6 +168,16 @@ export default function Customer() {
             >
               Đơn dịch vụ
               <span className="dash-tabs__count">{orders.length}</span>
+            </button>
+            <button
+              type="button"
+              className={
+                activeTab === 'loyalty' ? 'dash-tabs__item is-active' : 'dash-tabs__item'
+              }
+              onClick={() => setActiveTab('loyalty')}
+            >
+              Điểm thưởng
+              <span className="dash-tabs__count loyalty-points-badge">{loyaltyPoints}</span>
             </button>
           </div>
 
@@ -304,7 +337,7 @@ export default function Customer() {
               )}
             </section>
           </div>
-        ) : (
+        ) : activeTab === 'orders' ? (
           /* Tab Đơn dịch vụ */
           <section className="card">
             <div className="toolbar">
@@ -389,6 +422,114 @@ export default function Customer() {
               </ul>
             )}
           </section>
+        ) : (
+          /* Tab Điểm thưởng tích luỹ */
+          <div className="loyalty-container">
+            <section className="card loyalty-card">
+              <div className="loyalty-card__header">
+                <div className="loyalty-card__icon">⭐</div>
+                <div>
+                  <h2 className="loyalty-card__title">Điểm Thưởng Tích Lũy</h2>
+                  <p className="loyalty-card__desc">
+                    Tích lũy điểm khi hoàn tất đơn hàng và quy đổi thành tiền giảm giá trực tiếp!
+                  </p>
+                </div>
+              </div>
+
+              <div className="loyalty-card__points">
+                <span className="loyalty-card__number">{loyaltyPoints}</span>
+                <span className="loyalty-card__unit">điểm</span>
+                <span className="loyalty-card__equiv">
+                  ≈ {fmtMoney(loyaltyPoints * 1000)}
+                </span>
+              </div>
+
+              <div className="loyalty-card__rules">
+                <div className="loyalty-rule-item">
+                  <span className="loyalty-rule-item__icon">🎯</span>
+                  <div>
+                    <strong>Tích điểm tự động</strong>
+                    <p>Nhận 1 điểm cho mỗi 10.000 VNĐ khi đơn dịch vụ hoàn thành.</p>
+                  </div>
+                </div>
+                <div className="loyalty-rule-item">
+                  <span className="loyalty-rule-item__icon">💰</span>
+                  <div>
+                    <strong>Quy đổi giá trị</strong>
+                    <p>1 điểm = 1.000 VNĐ giảm giá khi đặt dịch vụ.</p>
+                  </div>
+                </div>
+                <div className="loyalty-rule-item">
+                  <span className="loyalty-rule-item__icon">🏷️</span>
+                  <div>
+                    <strong>Sử dụng linh hoạt</strong>
+                    <p>Dùng tối đa tới 30% giá trị đơn hàng, kết hợp cùng khuyến mãi.</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="card">
+              <div className="toolbar">
+                <h2 className="card__title">Lịch Sử Biến Động Điểm</h2>
+                <button
+                  type="button"
+                  className="btn btn--outline btn--sm"
+                  onClick={loadLoyalty}
+                  disabled={loyaltyLoading}
+                >
+                  {loyaltyLoading ? 'Đang tải…' : 'Làm mới'}
+                </button>
+              </div>
+
+              {loyaltyLoading ? (
+                <p className="card__empty">Đang tải lịch sử điểm thưởng…</p>
+              ) : loyaltyLogs.length === 0 ? (
+                <div className="empty-block">
+                  <p className="card__empty">Chưa có giao dịch điểm nào.</p>
+                  <Link to="/services" className="btn btn--primary">
+                    Đặt dịch vụ để bắt đầu tích điểm
+                  </Link>
+                </div>
+              ) : (
+                <ul className="loyalty-logs-list">
+                  {loyaltyLogs.map((log) => {
+                    const isEarn = log.type === 'earn'
+                    const isRedeem = log.type === 'redeem'
+                    const pts = log.points ?? 0
+
+                    return (
+                      <li key={log.id} className="loyalty-log-item">
+                        <div className={`loyalty-log-item__icon loyalty-log-item__icon--${log.type}`}>
+                          {isEarn ? '📈' : isRedeem ? '🎁' : '↩️'}
+                        </div>
+                        <div className="loyalty-log-item__info">
+                          <strong className="loyalty-log-item__title">
+                            {isEarn
+                              ? 'Tích điểm đơn dịch vụ'
+                              : isRedeem
+                                ? 'Quy đổi giảm giá đặt hàng'
+                                : 'Hoàn điểm thưởng'}
+                          </strong>
+                          <div className="loyalty-log-item__meta">
+                            {log.orderId && (
+                              <Link to={`/customer/orders/${encodeURIComponent(log.orderId)}`}>
+                                Đơn hàng #{log.orderId}
+                              </Link>
+                            )}
+                            <span>{fmtDateTime(log.createdAt)}</span>
+                          </div>
+                        </div>
+                        <div className={`loyalty-log-item__points ${pts > 0 ? 'text-success' : 'text-danger'}`}>
+                          {pts > 0 ? `+${pts}` : pts} điểm
+                        </div>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </section>
+          </div>
         )}
       </div>
     </DashboardLayout>

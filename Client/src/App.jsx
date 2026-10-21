@@ -93,7 +93,7 @@ export default function App() {
       <Route
         path="/customer"
         element={
-          <ProtectedRoute allow={['customer']}>
+          <ProtectedRoute allow={['customer', 'admin']}>
             <Customer />
           </ProtectedRoute>
         }
@@ -101,7 +101,7 @@ export default function App() {
       <Route
         path="/customer/requests/:id"
         element={
-          <ProtectedRoute allow={['customer']}>
+          <ProtectedRoute allow={['customer', 'admin']}>
             <RequestDetail />
           </ProtectedRoute>
         }
@@ -109,7 +109,7 @@ export default function App() {
       <Route
         path="/customer/orders/:id"
         element={
-          <ProtectedRoute allow={['customer']}>
+          <ProtectedRoute allow={['customer', 'admin']}>
             <OrderDetail />
           </ProtectedRoute>
         }

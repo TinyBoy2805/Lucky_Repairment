@@ -41,14 +41,13 @@ chỉ ra phần **đã có**, phần **vừa bổ sung** và phần **còn thi�
 - Áp dụng mã khuyến mãi (`PROMO10`, `SAVE10`, `WELCOME5`).
 - Trang chủ: **bán chạy nhất / mới nhất / xem nhiều nhất / gợi ý** — **đã bổ sung**
   (`GET /api/services/home`; lượt xem tăng qua `POST /api/services/:id/view`).
+- **Bình luận sản phẩm (hỏi đáp)** — **đã bổ sung** (`comment.service.js`, `ServiceComments.jsx`, `GET/POST /api/comments`).
+- **Trả lời bình luận** — **đã bổ sung** (`createReply`, inline reply form, hiển thị lồng replies).
+- **Tự động tích điểm khi mua hàng** — **đã bổ sung** (tích 1 điểm / 10.000 VNĐ khi đơn `completed`, `loyalty.service.js`, tab Điểm thưởng tại `/customer`).
+- **Quy đổi điểm thưởng → khuyến mãi khi đặt hàng** — **đã bổ sung** (1 điểm = 1.000 VNĐ, tối đa 30% đơn, `pointsToRedeem` trong `CartCheckoutModal.jsx` và `order.service.js`).
 
 ### Còn thiếu (khả thi, chưa làm)
-| Tính năng | Ghi chú |
-| --- | --- |
-| **Bình luận sản phẩm (hỏi đáp)** | Chưa có. Hiện chỉ có chat khách ↔ thợ trên 1 yêu cầu (`chat.service.js`), không phải Q&A công khai trên trang dịch vụ. |
-| **Trả lời bình luận** | Phụ thuộc tính năng bình luận ở trên. |
-| **Tự động tích điểm khi mua hàng** | Chưa có hệ thống điểm loyalty. `wallet.service.js` chỉ là số dư tiền. |
-| **Quy đổi điểm thưởng → khuyến mãi khi đặt hàng** | Chưa có. |
+*Tất cả 4 tính năng khả thi trong danh sách đã được hoàn thành đầy đủ.*
 
 ### Không áp dụng (N/A) do đổi mô hình
 | Tính năng | Lý do |
@@ -57,6 +56,5 @@ chỉ ra phần **đã có**, phần **vừa bổ sung** và phần **còn thi�
 | **Tìm kiếm gian hàng** | Không còn khái niệm gian hàng. |
 | **Xem sản phẩm thuộc gian hàng** | Chỉ còn "dịch vụ của tôi" cho thợ (`?ownerUid=mine`), không có trang gian hàng công khai. |
 
-## 3. Tóm tắt việc cần làm tiếp (nếu muốn phủ hết rubric)
-1. Bình luận/Q&A trên trang chi tiết dịch vụ + chức năng trả lời.
-2. Hệ thống điểm thưởng: tích điểm khi đơn `completed`, quy đổi điểm thành khuyến mãi khi đặt hàng.
+## 3. Tóm tắt
+Toàn bộ các tính năng bắt buộc và tính năng tự chọn theo rubric mô hình thương mại điện tử sửa chữa đã được triển khai hoàn chỉnh (Backend + Frontend + Database).

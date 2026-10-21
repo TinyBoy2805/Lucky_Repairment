@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/useAuth.js'
 import Field from '../components/Field.jsx'
 import { api } from '../lib/api.js'
 import { getToken } from '../lib/firebase.js'
-import { fmtDate } from '../lib/format.js'
+import { loyaltyApi } from '../lib/loyalty.js'
+import { fmtDate, fmtMoney } from '../lib/format.js'
 import { homeFor, ROLE_LABEL } from '../lib/roles.js'
 
 export default function Profile() {
@@ -15,12 +16,24 @@ export default function Profile() {
     name: user?.displayName || user?.fullName || '',
     phone: user?.phone || '',
   })
+  const [loyaltyPoints, setLoyaltyPoints] = useState(0)
   const [errors, setErrors] = useState({})
   const [busy, setBusy] = useState(false)
   const [success, setSuccess] = useState('')
   const [error, setError] = useState('')
   const [verifyBusy, setVerifyBusy] = useState(false)
   const [verifyNotice, setVerifyNotice] = useState('')
+
+  useEffect(() => {
+    if (!user) return
+    loyaltyApi
+      .getPoints()
+      .then((res) => {
+        const pts = Number(res?.points ?? res?.loyalty?.points ?? res?.data?.points ?? 0)
+        setLoyaltyPoints(pts)
+      })
+      .catch(() => {})
+  }, [user])
 
   const update = (name, value) => {
     setForm((prev) => ({ ...prev, [name]: value }))
@@ -133,6 +146,39 @@ export default function Profile() {
         )}
 
         <div className="profile-page__grid">
+          {/* Thẻ Điểm Thưởng Tích Luỹ */}
+          <section className="card loyalty-card" style={{ gridColumn: '1 / -1' }}>
+            <div className="loyalty-card__header">
+              <div className="loyalty-card__icon">⭐</div>
+              <div>
+                <h2 className="loyalty-card__title">Điểm Thưởng Tích Lũy (Loyalty Points)</h2>
+                <p className="loyalty-card__desc">
+                  Tích lũy 1 điểm cho mỗi 10.000 VNĐ khi hoàn tất dịch vụ. 1 điểm = 1.000 VNĐ giảm giá!
+                </p>
+              </div>
+            </div>
+
+            <div className="loyalty-card__points">
+              <span className="loyalty-card__number">{loyaltyPoints}</span>
+              <span className="loyalty-card__unit">điểm</span>
+              <span className="loyalty-card__equiv">
+                ≈ {fmtMoney(loyaltyPoints * 1000)}
+              </span>
+              <Link
+                to="/customer"
+                className="btn btn--outline btn--sm"
+                style={{
+                  marginLeft: 'auto',
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  color: '#fff',
+                  borderColor: 'rgba(255, 255, 255, 0.35)',
+                }}
+              >
+                Xem chi tiết lịch sử điểm →
+              </Link>
+            </div>
+          </section>
+
           <section className="card">
             <h2 className="card__title">Thông tin cá nhân</h2>
             <p className="form__hint" style={{ marginBottom: 16 }}>
