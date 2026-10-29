@@ -91,6 +91,7 @@ export default function Navbar() {
 
   const isHome = location.pathname === '/'
   const isServices = location.pathname.startsWith('/services')
+  const isAssistant = location.pathname === '/assistant'
 
   const displayName =
     user?.displayName ||
@@ -126,6 +127,13 @@ export default function Navbar() {
               className={`home-nav__link ${isServices ? 'home-nav__link--active' : ''}`}
             >
               Dịch vụ sửa chữa
+            </Link>
+
+            <Link
+              to="/assistant"
+              className={`home-nav__link ${isAssistant ? 'home-nav__link--active' : ''}`}
+            >
+              Trợ lý AI
             </Link>
 
             <a

@@ -11,7 +11,9 @@
     "start": "node src/server.js",
     "init-db": "node scripts/init-db.js",
     "seed:services": "node scripts/seed-services.js",
-    "smoke-test": "node scripts/smoke-test.js"
+    "smoke-test": "node scripts/smoke-test.js",
+    "export:assistant": "node scripts/export-assistant-docs.js",
+    "verify:assistant": "node scripts/verify-assistant.js"
   },
   "dependencies": {
     "cors": "^2.8.6",

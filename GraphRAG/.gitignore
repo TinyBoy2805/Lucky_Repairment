@@ -1,0 +1,13 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+
+# Generated indexing artifacts (never commit)
+input/
+output/
+spike/
+cache/
+logs/
+demo_cache.json
+output-cloudflare/

@@ -1,0 +1,165 @@
+{
+  "version": 1,
+  "entries": {
+    "sửa bình nóng lạnh giá bao nhiêu": {
+      "question": "Sửa bình nóng lạnh giá bao nhiêu?",
+      "answer": "Dịch vụ lắp đặt, bảo dưỡng và sửa bình nóng lạnh có giá tham khảo từ 150.000 VNĐ. Thợ có mặt sau khoảng 20–30 phút, bảo hành 6 tháng. Chi phí cuối cùng phụ thuộc vào tình trạng thực tế và phụ tùng thay thế; thợ sẽ khảo sát và báo giá trước khi sửa.",
+      "citations": [
+        {
+          "label": "Dịch vụ Lắp Đặt & Bảo Dưỡng, Sửa Bình Nóng Lạnh",
+          "url": "/services/lap-binh-nong-lanh",
+          "type": "service"
+        },
+        {
+          "label": "Chính sách bảo hành",
+          "url": null,
+          "type": "policy"
+        }
+      ],
+      "mode": "local",
+      "source": "seed"
+    },
+    "bảo hành bao lâu": {
+      "question": "Bảo hành bao lâu?",
+      "answer": "Thời gian bảo hành tùy dịch vụ, thường từ 3 đến 12 tháng. Ví dụ: thông tắc bồn cầu bảo hành 3 tháng; bình nóng lạnh và máy bơm nước 6–12 tháng; dò rò rỉ đường ống và thay aptomat bảo hành 12 tháng. Bảo hành áp dụng cho phần sửa chữa hoặc thiết bị do Lucky Repairment thay thế.",
+      "citations": [
+        {
+          "label": "Chính sách bảo hành",
+          "url": null,
+          "type": "policy"
+        },
+        {
+          "label": "Dịch vụ Dò Tìm Rò Rỉ & Sửa Đường Ống Nước Bục Vỡ",
+          "url": "/services/ro-ri-ong-nuoc",
+          "type": "service"
+        }
+      ],
+      "mode": "local",
+      "source": "seed"
+    },
+    "hủy đơn có mất phí không": {
+      "question": "Hủy đơn có mất phí không?",
+      "answer": "Nếu hủy trước khi thợ đến nhận việc, bạn được hoàn 100% số tiền đã thanh toán. Nếu thợ đã đến và đơn đang ở trạng thái đang thực hiện, hệ thống giữ phí kiểm tra 60.000 VNĐ và hoàn phần còn lại. Đơn đã hoàn thành hoặc đã hủy thì không thể hủy thêm.",
+      "citations": [
+        {
+          "label": "Chính sách hủy đơn và hoàn tiền",
+          "url": null,
+          "type": "policy"
+        }
+      ],
+      "mode": "local",
+      "source": "seed"
+    },
+    "thanh toán bằng cách nào": {
+      "question": "Thanh toán bằng cách nào?",
+      "answer": "Bạn có thể thanh toán khi nhận hàng hoặc sau khi nghiệm thu (COD), quét mã QR qua ví MoMo, hoặc thanh toán bằng thẻ quốc tế qua Stripe. ZaloPay hiện chưa được tích hợp thực tế; nếu chọn ZaloPay, hệ thống vẫn tạo phiên thanh toán MoMo.",
+      "citations": [
+        {
+          "label": "Chính sách thanh toán",
+          "url": null,
+          "type": "policy"
+        }
+      ],
+      "mode": "local",
+      "source": "seed"
+    },
+    "thông tắc bồn cầu mất bao lâu": {
+      "question": "Thông tắc bồn cầu mất bao lâu?",
+      "answer": "Dịch vụ thông tắc bồn cầu, chậu rửa bát và cống nghẹt có giá tham khảo từ 200.000 VNĐ, thời gian có mặt khoảng 15–30 phút, bảo hành 3 tháng. Thời gian xử lý thực tế tùy mức độ tắc; thợ sẽ kiểm tra và báo giá trước khi làm.",
+      "citations": [
+        {
+          "label": "Dịch vụ Thông Tắc Bồn Cầu, Chậu Rửa Bát & Cống Nghẹt",
+          "url": "/services/thong-tac-cong-bon-cau",
+          "type": "service"
+        }
+      ],
+      "mode": "local",
+      "source": "seed"
+    },
+    "có bao nhiêu dịch vụ điện nước": {
+      "question": "Có bao nhiêu dịch vụ điện nước?",
+      "answer": "Danh mục hiện có 6 dịch vụ: 2 dịch vụ sửa chữa điện và 4 dịch vụ sửa chữa nước. Các dịch vụ gồm xử lý chập điện, thay aptomat/ổ cắm, sửa máy bơm nước, dò rò rỉ đường ống, thông tắc bồn cầu và sửa bình nóng lạnh.",
+      "citations": [
+        {
+          "label": "Danh sách dịch vụ",
+          "url": "/services",
+          "type": "service"
+        }
+      ],
+      "mode": "local",
+      "source": "seed"
+    },
+    "dịch vụ nào đắt nhất": {
+      "question": "Dịch vụ nào đắt nhất?",
+      "answer": "Theo giá tham khảo, dịch vụ Dò Tìm Rò Rỉ & Sửa Đường Ống Nước Bục Vỡ có giá khởi điểm cao nhất: từ 250.000 VNĐ. Tiếp theo là xử lý chập điện và thông tắc bồn cầu, cùng từ 200.000 VNĐ.",
+      "citations": [
+        {
+          "label": "Dịch vụ Dò Tìm Rò Rỉ & Sửa Đường Ống Nước Bục Vỡ",
+          "url": "/services/ro-ri-ong-nuoc",
+          "type": "service"
+        }
+      ],
+      "mode": "local",
+      "source": "seed"
+    },
+    "dịch vụ nào bảo hành dài nhất": {
+      "question": "Dịch vụ nào bảo hành dài nhất?",
+      "answer": "Hai dịch vụ có thời gian bảo hành dài nhất là Dò Tìm Rò Rỉ & Sửa Đường Ống Nước Bục Vỡ và Thay Thế & Lắp Đặt Aptomat, Ổ Cắm, Công Tắc Điện, cùng bảo hành 12 tháng.",
+      "citations": [
+        {
+          "label": "Dịch vụ Dò Tìm Rò Rỉ & Sửa Đường Ống Nước Bục Vỡ",
+          "url": "/services/ro-ri-ong-nuoc",
+          "type": "service"
+        },
+        {
+          "label": "Dịch vụ Thay Thế & Lắp Đặt Aptomat, Ổ Cắm, Công Tắc Điện",
+          "url": "/services/thay-aptomat-o-cam",
+          "type": "service"
+        }
+      ],
+      "mode": "local",
+      "source": "seed"
+    },
+    "danh mục sửa chữa nước gồm những gì": {
+      "question": "Danh mục sửa chữa nước gồm những gì?",
+      "answer": "Danh mục sửa chữa nước gồm 4 dịch vụ: sửa chữa và lắp đặt máy bơm nước, dò tìm rò rỉ và sửa đường ống nước bục vỡ, thông tắc bồn cầu/chậu rửa bát/cống nghẹt, và lắp đặt/bảo dưỡng/sửa bình nóng lạnh.",
+      "citations": [
+        {
+          "label": "Dịch vụ Sửa Chữa & Lắp Đặt Máy Bơm Nước Tận Nhà",
+          "url": "/services/sua-may-bom-nuoc",
+          "type": "service"
+        },
+        {
+          "label": "Dịch vụ Dò Tìm Rò Rỉ & Sửa Đường Ống Nước Bục Vỡ",
+          "url": "/services/ro-ri-ong-nuoc",
+          "type": "service"
+        },
+        {
+          "label": "Dịch vụ Thông Tắc Bồn Cầu, Chậu Rửa Bát & Cống Nghẹt",
+          "url": "/services/thong-tac-cong-bon-cau",
+          "type": "service"
+        },
+        {
+          "label": "Dịch vụ Lắp Đặt & Bảo Dưỡng, Sửa Bình Nóng Lạnh",
+          "url": "/services/lap-binh-nong-lanh",
+          "type": "service"
+        }
+      ],
+      "mode": "local",
+      "source": "seed"
+    },
+    "dịch vụ nào rẻ nhất": {
+      "question": "Dịch vụ nào rẻ nhất?",
+      "answer": "Dịch vụ có giá khởi điểm thấp nhất là Thay Thế & Lắp Đặt Aptomat, Ổ Cắm, Công Tắc Điện, từ 80.000 VNĐ, bảo hành 12 tháng.",
+      "citations": [
+        {
+          "label": "Dịch vụ Thay Thế & Lắp Đặt Aptomat, Ổ Cắm, Công Tắc Điện",
+          "url": "/services/thay-aptomat-o-cam",
+          "type": "service"
+        }
+      ],
+      "mode": "local",
+      "source": "seed"
+    }
+  }
+}

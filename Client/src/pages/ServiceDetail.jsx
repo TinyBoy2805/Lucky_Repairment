@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import ServiceBookingModal from '../components/ServiceBookingModal.jsx'
 import ServiceComments from '../components/ServiceComments.jsx'
+import ServiceAssistant from '../components/ServiceAssistant.jsx'
 import { servicesApi } from '../lib/services.js'
 import { useCart } from '../context/useCart.js'
 import { useAuth } from '../context/useAuth.js'
@@ -294,6 +295,9 @@ export default function ServiceDetail() {
               </a>
             </div>
           </div>
+
+          {/* Service-scoped assistant Q&A */}
+          <ServiceAssistant service={service} />
 
           {/* Hỏi đáp & Bình luận dịch vụ */}
           <ServiceComments serviceId={id} user={user} />

@@ -150,6 +150,19 @@ npm run dev
 
 - `Client/src/lib/firebase.js` chứa config (apiKey) của web app — đây là **khóa công khai** của Firebase web SDK, không phải secret, nhưng hãy dùng project của riêng bạn.
 
+## Trợ lý GraphRAG (tùy chọn)
+
+Trợ lý AI dùng Microsoft GraphRAG. KG được build bằng Cloudflare Workers AI; câu hỏi được trả lời local bằng Ollama.
+
+- Cấu hình: `GraphRAG/.env` (`CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `OLLAMA_*`, `ASSISTANT_TOKEN` trùng với `Server/.env`).
+- Chạy Ollama local: `cd GraphRAG && powershell -ExecutionPolicy Bypass -File scripts/start-ollama.ps1`.
+- Xuất dữ liệu: `cd Server && npm run export:assistant`.
+- Build index một lần: `cd GraphRAG && docker compose --profile index run --rm graphrag-index`.
+- Chạy sidecar: `cd GraphRAG && docker compose up -d graphrag`.
+- UI: `/assistant`, khối hỏi đáp trong `/services/:id`, và `/admin/assistant`.
+
+Chi tiết và kiểm thử: `GraphRAG/README.md`.
+
 ## Troubleshooting
 
 - **"Không thể kết nối máy chủ"** → chưa chạy `Server`. Bật lên trước rồi thử lại.
