@@ -19,4 +19,8 @@ export const env = {
     'https://lucky-repairment-default-rtdb.firebaseio.com',
   serviceAccountFile: process.env.SERVICE_ACCOUNT_FILE ?? './serviceAccountKey.json',
   serviceAccountJson: process.env.FIREBASE_SERVICE_ACCOUNT,
+
+  assistantUrl: process.env.ASSISTANT_URL ?? 'http://127.0.0.1:8000',
+  assistantToken: process.env.ASSISTANT_TOKEN ?? '',
+  assistantAllowReindex: process.env.ASSISTANT_ALLOW_REINDEX === 'true',
 }

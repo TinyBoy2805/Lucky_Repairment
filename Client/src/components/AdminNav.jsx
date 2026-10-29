@@ -14,6 +14,7 @@ const LINKS = [
   { to: '/admin/reports', label: 'Báo cáo', badge: 'openReports' },
   { to: '/admin/availability', label: 'Lịch làm việc' },
   { to: '/admin/pricing', label: 'Cấu hình giá' },
+  { to: '/admin/assistant', label: 'Trợ lý AI' },
 ]
 
 export default function AdminNav() {

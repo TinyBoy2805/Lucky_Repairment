@@ -1,0 +1,45 @@
+services:
+  graphrag:
+    build: .
+    container_name: lucky-graphrag
+    env_file:
+      - path: .env
+        required: false
+    ports:
+      - "127.0.0.1:8000:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./input:/app/input
+      - ./output:/app/output
+      - ./cache:/app/cache
+      - ./logs:/app/logs
+      - ./settings.yml:/app/settings.yml:ro
+      - ./demo_cache.seed.json:/app/demo_cache.seed.json:ro
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')
+      interval: 20s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  graphrag-index:
+    build: .
+    profiles: ["index"]
+    env_file:
+      - path: .env
+        required: false
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./input:/app/input
+      - ./output:/app/output
+      - ./spike:/app/spike
+      - ./cache:/app/cache
+      - ./logs:/app/logs
+      - ./settings.yml:/app/settings.yml:ro
+    command: ["python", "-m", "service.indexer"]
