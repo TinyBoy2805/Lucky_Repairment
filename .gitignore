@@ -23,6 +23,9 @@ Server/serviceAccountKey.json
 google-credentials.json
 service-account*.json
 
+# ===== ML artifacts =====
+Server/data/ml/
+
 # ===== Editor / OS =====
 .vscode/
 .idea/

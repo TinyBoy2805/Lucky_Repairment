@@ -20,7 +20,13 @@ export const env = {
   serviceAccountFile: process.env.SERVICE_ACCOUNT_FILE ?? './serviceAccountKey.json',
   serviceAccountJson: process.env.FIREBASE_SERVICE_ACCOUNT,
 
-  assistantUrl: process.env.ASSISTANT_URL ?? 'http://127.0.0.1:8000',
+  assistantUrl: process.env.ASSISTANT_URL ?? 'http://127.0.0.1:6767',
   assistantToken: process.env.ASSISTANT_TOKEN ?? '',
   assistantAllowReindex: process.env.ASSISTANT_ALLOW_REINDEX === 'true',
+
+  ollamaEmbedUrl: process.env.OLLAMA_EMBED_URL ?? 'http://127.0.0.1:11435',
+  ollamaEmbeddingModel: process.env.OLLAMA_EMBEDDING_MODEL ?? 'qwen3-embedding:0.6b',
+  ollamaEmbedTimeoutMs: Number(process.env.OLLAMA_EMBED_TIMEOUT_MS ?? 15000),
+  mlDataDir: process.env.ML_DATA_DIR ?? '',
+  mlLabelMargin: Number(process.env.ML_LABEL_MARGIN ?? 0.05),
 }

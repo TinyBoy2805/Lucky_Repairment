@@ -7,6 +7,8 @@ import {
   sortList,
   withinRange,
 } from '../utils/list-query.js'
+import { deriveCategoryFromDevice } from './label.service.js'
+import { enqueueLabelJob } from './label-queue.service.js'
 
 // Các trạng thái hợp lệ của 1 yêu cầu sửa chữa
 export const REQUEST_STATUSES = ['pending', 'assigned', 'in_progress', 'done']
@@ -26,6 +28,25 @@ const notFound = (message) => Object.assign(new Error(message), { status: 404 })
 const conflict = (message) => Object.assign(new Error(message), { status: 409 })
 
 const norm = (value) => String(value ?? '').trim()
+
+const VALID_CATEGORIES = new Set(['electric', 'water'])
+
+async function resolveInitialLabel(serviceId, device) {
+  if (serviceId) {
+    try {
+      const doc = await firestore.collection('services').doc(serviceId).get()
+      const category = doc.exists ? doc.data()?.category : null
+      if (VALID_CATEGORIES.has(category)) {
+        return { category, source: 'real' }
+      }
+    } catch {}
+  }
+
+  const derived = deriveCategoryFromDevice(device)
+  if (derived) return { category: derived, source: 'derived' }
+
+  return null
+}
 
 /**
  * Danh sách yêu cầu theo vai trò từ Cloud Firestore:
@@ -50,6 +71,16 @@ export async function listRequests(viewer, query = {}) {
   }
   if (query.repairmanUid) {
     items = items.filter((item) => item.repairmanUid === query.repairmanUid)
+  }
+  if (query.category) {
+    if (query.category === 'unknown') {
+      items = items.filter((item) => !item.category || item.category === 'unknown')
+    } else {
+      items = items.filter((item) => item.category === query.category)
+    }
+  }
+  if (query.labelStatus) {
+    items = items.filter((item) => item.labelStatus === query.labelStatus)
   }
 
   items = items.filter((item) => withinRange(item.createdAt, range))
@@ -87,6 +118,9 @@ export async function createRequest(customer, input = {}) {
   if (!address) throw badRequest('Vui lòng nhập địa chỉ cần sửa chữa.')
   if (!phone) throw badRequest('Vui lòng nhập số điện thoại liên hệ.')
 
+  const initialLabel = await resolveInitialLabel(serviceId, device)
+  const now = Date.now()
+
   const entry = {
     serviceId: serviceId || null,
     serviceName: serviceName || device,
@@ -105,8 +139,14 @@ export async function createRequest(customer, input = {}) {
     status: 'pending',
     repairmanUid: null,
     repairmanName: '',
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
+    category: initialLabel?.category ?? null,
+    labelStatus: initialLabel ? 'done' : 'calculating',
+    labelSource: initialLabel?.source ?? null,
+    labelConfidence: initialLabel ? 1 : null,
+    labelMargin: initialLabel ? 1 : null,
+    labeledAt: initialLabel ? now : null,
+    createdAt: now,
+    updatedAt: now,
   }
 
   // 1. Tạo document trong Cloud Firestore collection 'requests'
@@ -130,6 +170,10 @@ export async function createRequest(customer, input = {}) {
     await requestRtdbRef(id).set(fullEntry)
   } catch (err) {
     console.warn('[requests] RTDB sync error:', err.message)
+  }
+
+  if (!initialLabel) {
+    enqueueLabelJob(id)
   }
 
   console.log(`[bookings] ✅ Đã lưu đơn đặt lịch #${id} vào Cloud Firestore (collection "requests" & "bookings")`)

@@ -778,6 +778,62 @@ async function main() {
       body: { commissionRate: 200 },
     })
     check('tỷ lệ hoa hồng không hợp lệ → 400', res.status === 400, res.status)
+
+    section('ML — GỢI Ý DỊCH VỤ THEO SỰ CỐ')
+    res = await api('POST', '/api/ml/classify', {
+      body: { text: 'ổ điện bị hư', selectedCategory: 'water' },
+    })
+    check('classify không token → 401', res.status === 401, res.status)
+
+    res = await api('POST', '/api/ml/classify', {
+      token: tokens.customer,
+      body: {
+        text: 'ổ điện bị hư',
+        selectedCategory: 'water',
+        excludeServiceId: 'sua-may-bom-nuoc',
+      },
+    })
+    check(
+      'phát hiện lệch danh mục → 200',
+      res.status === 200 &&
+        res.data.mismatch === true &&
+        res.data.issueCategory === 'electric',
+      res.data,
+    )
+    check(
+      'gợi ý đúng nhóm điện',
+      Array.isArray(res.data.recommendations) &&
+        res.data.recommendations.length > 0 &&
+        res.data.recommendations.every((service) => service.category === 'electric'),
+      res.data?.recommendations?.map((service) => service.id),
+    )
+    check(
+      'không gợi ý lại dịch vụ đang chọn',
+      res.data.recommendations.every((service) => service.id !== 'sua-may-bom-nuoc'),
+      res.data?.recommendations?.map((service) => service.id),
+    )
+
+    res = await api('POST', '/api/ml/classify', {
+      token: tokens.customer,
+      body: { text: 'máy bơm không lên nước', selectedCategory: 'water' },
+    })
+    check(
+      'cùng danh mục → không cảnh báo',
+      res.status === 200 &&
+        res.data.mismatch === false &&
+        res.data.recommendations.length === 0,
+      res.data,
+    )
+
+    res = await api('POST', '/api/ml/classify', {
+      token: tokens.customer,
+      body: { text: 'hỏng', selectedCategory: 'water' },
+    })
+    check(
+      'mô tả quá ngắn → không cảnh báo',
+      res.status === 200 && res.data.mismatch === false,
+      res.data,
+    )
   } finally {
     section('DỌN DẸP')
     await cleanup(created)
