@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import AdminBadge from '../../components/AdminBadge.jsx'
 import AdminPager from '../../components/AdminPager.jsx'
 import StatusBadge from '../../components/StatusBadge.jsx'
 import { adminApi } from '../../lib/admin.js'
+import { mlApi } from '../../lib/ml.js'
 import { buildQuery, useDebounced } from '../../lib/query.js'
 import { useAdminList } from '../../lib/useAdminList.js'
 import { dayEnd, dayStart, fmtDate, fmtMoney } from '../../lib/format.js'
@@ -15,6 +16,26 @@ const STATUS_OPTIONS = [
   { value: 'in_progress', label: 'Đang sửa' },
   { value: 'done', label: 'Hoàn thành' },
 ]
+
+const CATEGORY_OPTIONS = [
+  { value: '', label: 'Tất cả danh mục' },
+  { value: 'electric', label: 'Điện' },
+  { value: 'water', label: 'Nước' },
+  { value: 'unknown', label: 'Chưa xác định' },
+]
+
+function CategoryBadge({ item }) {
+  if (item.labelStatus === 'calculating') {
+    return <span className="status status--pending">Đang tính…</span>
+  }
+  if (item.category === 'electric') {
+    return <span className="status status--assigned">Điện</span>
+  }
+  if (item.category === 'water') {
+    return <span className="status status--in_progress">Nước</span>
+  }
+  return <span className="status status--failed">Chưa xác định</span>
+}
 
 const SORT_OPTIONS = [
   { value: 'newest', label: 'Mới nhất trước' },
@@ -35,6 +56,7 @@ export default function AdminOrders() {
   const [keyword, setKeyword] = useState('')
   const search = useDebounced(keyword)
   const [status, setStatus] = useState(searchParams.get('status') ?? '')
+  const [category, setCategory] = useState('')
   const [repairmanUid, setRepairmanUid] = useState('')
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
@@ -49,6 +71,7 @@ export default function AdminOrders() {
   const params = {
     search,
     status,
+    category,
     repairmanUid,
     from: dayStart(from),
     to: dayEnd(to),
@@ -58,9 +81,33 @@ export default function AdminOrders() {
     pageSize: PAGE_SIZE,
   }
   const key = buildQuery(params)
-  const { data, loading, error } = useAdminList(() => adminApi.orders(params), key)
+  const { data, loading, error, reload, setError } = useAdminList(
+    () => adminApi.orders(params),
+    key,
+  )
 
   const orders = data?.requests ?? []
+  const hasCalculating = orders.some((item) => item.labelStatus === 'calculating')
+  const reloadRef = useRef(reload)
+
+  useEffect(() => {
+    reloadRef.current = reload
+  })
+
+  useEffect(() => {
+    if (!hasCalculating) return undefined
+    const id = setInterval(() => reloadRef.current(), 4000)
+    return () => clearInterval(id)
+  }, [hasCalculating])
+
+  const retryLabel = async (id) => {
+    try {
+      await mlApi.retryLabel(id)
+      reload()
+    } catch (retryError) {
+      setError(retryError.message)
+    }
+  }
 
   useEffect(() => {
     adminApi
@@ -72,6 +119,7 @@ export default function AdminOrders() {
   const resetFilters = () => {
     setKeyword('')
     setStatus('')
+    setCategory('')
     setRepairmanUid('')
     setFrom('')
     setTo('')
@@ -150,6 +198,20 @@ export default function AdminOrders() {
           </select>
           <select
             className="admin-select"
+            value={category}
+            onChange={(event) => {
+              setCategory(event.target.value)
+              setPage(1)
+            }}
+          >
+            {CATEGORY_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <select
+            className="admin-select"
             value={repairmanUid}
             onChange={(event) => {
               setRepairmanUid(event.target.value)
@@ -218,7 +280,10 @@ export default function AdminOrders() {
               <li key={item.id} className="req-item">
                 <div className="req-item__top">
                   <strong>{item.device}</strong>
-                  <StatusBadge status={item.status} />
+                  <div className="admin-actions">
+                    <CategoryBadge item={item} />
+                    <StatusBadge status={item.status} />
+                  </div>
                 </div>
                 <p className="req-item__issue">{item.issue}</p>
                 <p className="req-item__meta">
@@ -244,6 +309,16 @@ export default function AdminOrders() {
                     >
                       {openId === item.id ? 'Ẩn chi tiết' : 'Chi tiết'}
                     </button>
+                    {(!item.category || item.labelStatus === 'failed') &&
+                      item.labelStatus !== 'calculating' && (
+                      <button
+                        className="btn btn--outline btn--sm"
+                        type="button"
+                        onClick={() => retryLabel(item.id)}
+                      >
+                        Gắn nhãn lại
+                      </button>
+                    )}
                   </span>
                 </div>
 

@@ -1,7 +1,13 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/useAuth.js'
+import { mlApi } from '../lib/ml.js'
 import { servicesApi } from '../lib/services.js'
+
+const CATEGORY_LABEL = {
+  electric: 'Điện',
+  water: 'Nước',
+}
 
 const TIME_SLOTS = [
   '08:00 - 10:00 (Sáng)',
@@ -30,6 +36,49 @@ export default function ServiceBookingModal({ service, isOpen, onClose, onSucces
   const [busy, setBusy] = useState(false)
   const [createdRequest, setCreatedRequest] = useState(null)
   const [submitError, setSubmitError] = useState('')
+  const [selectedService, setSelectedService] = useState(service)
+  const [hint, setHint] = useState(null)
+  const [hintDismissedFor, setHintDismissedFor] = useState('')
+
+  useEffect(() => {
+    setSelectedService(service)
+    setHint(null)
+    setHintDismissedFor('')
+  }, [isOpen, service])
+
+  useEffect(() => {
+    if (!isOpen || !user || !selectedService) return undefined
+
+    const text = form.issue.trim()
+    if (text.length < 8 || text === hintDismissedFor || busy) {
+      setHint(null)
+      return undefined
+    }
+
+    let cancelled = false
+    const timer = setTimeout(async () => {
+      try {
+        const result = await mlApi.classify({
+          text,
+          selectedCategory: selectedService.category,
+          excludeServiceId: selectedService.id,
+        })
+        if (cancelled) return
+        if (result?.mismatch && result.recommendations?.length) {
+          setHint(result)
+        } else {
+          setHint(null)
+        }
+      } catch {
+        if (!cancelled) setHint(null)
+      }
+    }, 700)
+
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [isOpen, user, selectedService, form.issue, hintDismissedFor, busy])
 
   if (!isOpen || !service) return null
 
@@ -60,15 +109,15 @@ export default function ServiceBookingModal({ service, isOpen, onClose, onSucces
 
     try {
       const payload = {
-        serviceId: service.id,
-        serviceName: service.title,
-        device: service.categoryName,
+        serviceId: selectedService.id,
+        serviceName: selectedService.title,
+        device: selectedService.categoryName,
         customerName: form.customerName.trim(),
         phone: form.phone.trim(),
         address: form.address.trim(),
         issue: form.issue.trim(),
         notes: form.notes.trim(),
-        estimatedPrice: service.startingPrice,
+        estimatedPrice: selectedService.startingPrice,
         appointmentDate: urgent ? 'Hôm nay (Cấp tốc)' : appointmentDate,
         appointmentTime: urgent ? 'Có mặt sau 15–30 phút' : appointmentTime,
       }
@@ -136,7 +185,7 @@ export default function ServiceBookingModal({ service, isOpen, onClose, onSucces
             </h3>
 
             <p style={{ fontSize: '14.5px', color: '#64748b', maxWidth: 420, margin: '0 auto 20px', lineHeight: 1.5 }}>
-              Quý khách vui lòng đăng nhập tài khoản để đặt lịch <strong>{service.title}</strong>, theo dõi thợ tới sửa chữa và lưu trữ bảo hành.
+              Quý khách vui lòng đăng nhập tài khoản để đặt lịch <strong>{selectedService.title}</strong>, theo dõi thợ tới sửa chữa và lưu trữ bảo hành.
             </p>
 
             <div
@@ -144,15 +193,15 @@ export default function ServiceBookingModal({ service, isOpen, onClose, onSucces
               style={{ maxWidth: 420, margin: '0 auto 24px', textAlign: 'left' }}
             >
               <img
-                src={service.image}
-                alt={service.title}
+                src={selectedService.image}
+                alt={selectedService.title}
                 className="order-summary-box__img"
               />
               <div className="order-summary-box__info">
-                <h4 className="order-summary-box__name">{service.title}</h4>
+                <h4 className="order-summary-box__name">{selectedService.title}</h4>
                 <div className="order-summary-box__meta">
-                  <span>Giá từ: <strong className="text-brand">{service.priceDisplay}</strong></span>
-                  <span>Bảo hành: <strong>{service.warranty}</strong></span>
+                  <span>Giá từ: <strong className="text-brand">{selectedService.priceDisplay}</strong></span>
+                  <span>Bảo hành: <strong>{selectedService.warranty}</strong></span>
                 </div>
               </div>
             </div>
@@ -185,7 +234,7 @@ export default function ServiceBookingModal({ service, isOpen, onClose, onSucces
             </div>
             <h3 className="order-success__title">Đặt Lịch Thành Công!</h3>
             <p className="order-success__desc">
-              Yêu cầu <strong>{service.title}</strong> của quý khách đã được tiếp nhận. Kỹ thuật viên sẽ gọi tới số điện thoại <strong>{createdRequest.customerPhone || createdRequest.phone}</strong> trong vòng 5 phút để xác nhận và di chuyển tới nơi.
+              Yêu cầu <strong>{selectedService.title}</strong> của quý khách đã được tiếp nhận. Kỹ thuật viên sẽ gọi tới số điện thoại <strong>{createdRequest.customerPhone || createdRequest.phone}</strong> trong vòng 5 phút để xác nhận và di chuyển tới nơi.
             </p>
 
             <div className="order-success__info">
@@ -205,7 +254,7 @@ export default function ServiceBookingModal({ service, isOpen, onClose, onSucces
               </div>
               <div>
                 <span>Chi phí tham khảo:</span>
-                <span>{service.priceDisplay} (Báo giá chuẩn sau khảo sát)</span>
+                <span>{selectedService.priceDisplay} (Báo giá chuẩn sau khảo sát)</span>
               </div>
             </div>
 
@@ -231,18 +280,18 @@ export default function ServiceBookingModal({ service, isOpen, onClose, onSucces
             {/* Hộp tóm tắt dịch vụ */}
             <div className="order-summary-box">
               <img
-                src={service.image}
-                alt={service.title}
+                src={selectedService.image}
+                alt={selectedService.title}
                 className="order-summary-box__img"
               />
               <div className="order-summary-box__info">
-                <h4 className="order-summary-box__name">{service.title}</h4>
+                <h4 className="order-summary-box__name">{selectedService.title}</h4>
                 <div className="order-summary-box__meta">
-                  <span>Giá từ: <strong className="text-brand">{service.priceDisplay}</strong></span>
-                  <span>Bảo hành: <strong>{service.warranty}</strong></span>
+                  <span>Giá từ: <strong className="text-brand">{selectedService.priceDisplay}</strong></span>
+                  <span>Bảo hành: <strong>{selectedService.warranty}</strong></span>
                 </div>
                 <div className="order-summary-box__install" style={{ color: '#16a34a' }}>
-                  Có mặt sau {service.responseTime}
+                  Có mặt sau {selectedService.responseTime}
                 </div>
               </div>
             </div>
@@ -365,6 +414,60 @@ export default function ServiceBookingModal({ service, isOpen, onClose, onSucces
                 </div>
                 {errors.issue && <span className="field__error">{errors.issue}</span>}
               </div>
+
+              {hint?.mismatch && hint.recommendations.length > 0 && (
+                <div className="booking-hint" role="alert">
+                  <div className="booking-hint__head">
+                    <strong>Có vẻ bạn chọn chưa đúng dịch vụ</strong>
+                    <p>
+                      Sự cố bạn mô tả có vẻ thuộc nhóm{' '}
+                      <strong>
+                        {CATEGORY_LABEL[hint.issueCategory] || hint.issueCategory}
+                      </strong>
+                      , nhưng bạn đang đặt dịch vụ{' '}
+                      <strong>
+                        {CATEGORY_LABEL[selectedService.category] ||
+                          selectedService.category}
+                      </strong>
+                      .
+                    </p>
+                  </div>
+
+                  <ul className="booking-hint__list">
+                    {hint.recommendations.map((item) => (
+                      <li key={item.id} className="booking-hint__item">
+                        {item.image && <img src={item.image} alt={item.title} />}
+                        <div className="booking-hint__info">
+                          <strong>{item.title}</strong>
+                          <span>{item.priceDisplay || 'Liên hệ'}</span>
+                        </div>
+                        <button
+                          type="button"
+                          className="btn btn--outline btn--sm"
+                          onClick={() => {
+                            setSelectedService(item)
+                            setHint(null)
+                            setHintDismissedFor('')
+                          }}
+                        >
+                          Chọn dịch vụ này
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <button
+                    type="button"
+                    className="btn btn--outline btn--sm"
+                    onClick={() => {
+                      setHintDismissedFor(form.issue.trim())
+                      setHint(null)
+                    }}
+                  >
+                    Vẫn giữ dịch vụ này
+                  </button>
+                </div>
+              )}
 
               <div className="field">
                 <label htmlFor="serviceNotes">Ghi chú thêm cho thợ</label>

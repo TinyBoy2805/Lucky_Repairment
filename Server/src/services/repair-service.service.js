@@ -1,5 +1,10 @@
 import { db, firestore } from '../config/firebase.js'
 import { badRequest, conflict, forbidden, notFound } from '../utils/http-error.js'
+import {
+  removeServiceVector,
+  searchServiceIds,
+  upsertServiceVector,
+} from './search.service.js'
 
 export const INITIAL_SERVICES = [
   {
@@ -374,14 +379,34 @@ export async function listRepairServices({ category, search, sort, ownerUid, act
     list = list.filter((s) => s.ownerUid === ownerUid)
   }
 
+  let semanticRanked = false
+
   if (search) {
-    const term = String(search).trim().toLowerCase()
-    list = list.filter(
-      (s) =>
-        (s.title || '').toLowerCase().includes(term) ||
-        (s.shortDesc || '').toLowerCase().includes(term) ||
-        (s.categoryName || '').toLowerCase().includes(term),
-    )
+    let ranked = null
+    try {
+      ranked = await searchServiceIds(search, { topK: 1000 })
+    } catch (err) {
+      console.warn('[search] semantic search unavailable:', err.message)
+    }
+
+    if (ranked?.ids?.length) {
+      const byId = new Map(list.map((service) => [service.id, service]))
+      const matched = ranked.ids.map((id) => byId.get(id)).filter(Boolean)
+      if (matched.length) {
+        list = matched
+        semanticRanked = true
+      }
+    }
+
+    if (!semanticRanked) {
+      const term = String(search).trim().toLowerCase()
+      list = list.filter(
+        (s) =>
+          (s.title || '').toLowerCase().includes(term) ||
+          (s.shortDesc || '').toLowerCase().includes(term) ||
+          (s.categoryName || '').toLowerCase().includes(term),
+      )
+    }
   }
 
   if (category && category !== 'all') {
@@ -399,7 +424,7 @@ export async function listRepairServices({ category, search, sort, ownerUid, act
       (a, b) =>
         (sales[b.id] || 0) - (sales[a.id] || 0) || (a.id || '').localeCompare(b.id || ''),
     )
-  } else {
+  } else if (!semanticRanked) {
     const initialOrder = INITIAL_SERVICES.map((s) => s.id)
     list.sort((a, b) => {
       const idxA = initialOrder.indexOf(a.id)
@@ -549,6 +574,9 @@ export async function createRepairService(input = {}, actor = null) {
   }
 
   await docRef.set(newService)
+  upsertServiceVector(newService).catch((error) => {
+    console.warn('[search] service index update failed:', error.message)
+  })
   return newService
 }
 
@@ -581,8 +609,12 @@ export async function updateRepairService(id, input = {}, actor = null) {
   const data = sanitizeRepairServiceInput({ ...existing, ...provided })
   const patch = { ...data, updatedAt: Date.now() }
 
-  await docRef.set({ ...existing, ...patch })
-  return { ...existing, ...patch }
+  const updated = { ...existing, ...patch }
+  await docRef.set(updated)
+  upsertServiceVector(updated).catch((error) => {
+    console.warn('[search] service index update failed:', error.message)
+  })
+  return updated
 }
 
 /** Xóa dịch vụ khỏi Cloud Firestore (chủ sở hữu hoặc admin) */
@@ -599,6 +631,9 @@ export async function deleteRepairService(id, actor = null) {
   assertCanManageService(existing, actor)
 
   await docRef.delete()
+  removeServiceVector(id).catch((error) => {
+    console.warn('[search] service index removal failed:', error.message)
+  })
   return { success: true, id }
 }
 

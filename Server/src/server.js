@@ -2,7 +2,9 @@ import { env } from './config/env.js'
 
 try {
   const { createApp } = await import('./app.js')
+  const { startLabelWorker } = await import('./services/label-queue.service.js')
   const app = createApp()
+  startLabelWorker()
 
   app.listen(env.port, () => {
     console.log('')

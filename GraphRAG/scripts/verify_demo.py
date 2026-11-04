@@ -4,7 +4,7 @@ import sys
 import urllib.error
 import urllib.request
 
-BASE_URL = os.getenv("ASSISTANT_URL", "http://127.0.0.1:8000")
+BASE_URL = os.getenv("ASSISTANT_URL", "http://127.0.0.1:6767")
 TOKEN = os.getenv("ASSISTANT_TOKEN", "")
 
 QUESTIONS = [

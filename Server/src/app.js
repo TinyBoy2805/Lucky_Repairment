@@ -22,6 +22,7 @@ import commentRoutes from './routes/comment.routes.js'
 import settingsRoutes from './routes/settings.routes.js'
 import repairmanRoutes from './routes/repairman.routes.js'
 import assistantRoutes from './routes/assistant.routes.js'
+import mlRoutes from './routes/ml.routes.js'
 
 export function createApp() {
   const app = express()
@@ -59,6 +60,7 @@ export function createApp() {
   app.use('/api/settings', settingsRoutes)
   app.use('/api/repairman', repairmanRoutes)
   app.use('/api/assistant', assistantRoutes)
+  app.use('/api/ml', mlRoutes)
 
   app.use(notFound)
   app.use(errorHandler)

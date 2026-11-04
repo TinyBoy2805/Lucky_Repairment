@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import DashboardLayout from '../layouts/DashboardLayout.jsx'
 import Field from '../components/Field.jsx'
 import StatusBadge from '../components/StatusBadge.jsx'
@@ -8,6 +8,7 @@ import { ordersApi } from '../lib/orders.js'
 import { servicesApi } from '../lib/services.js'
 import { walletApi } from '../lib/wallet.js'
 import { repairmanApi } from '../lib/repairman.js'
+import { mlApi } from '../lib/ml.js'
 import { fmtDate, fmtMoney } from '../lib/format.js'
 
 const TABS = [
@@ -30,6 +31,26 @@ const CATEGORY_OPTIONS = [
   { value: 'electric', label: 'Sửa chữa điện' },
   { value: 'water', label: 'Sửa chữa nước' },
 ]
+
+const REQUEST_CATEGORY_OPTIONS = [
+  { value: 'all', label: 'Tất cả danh mục' },
+  { value: 'electric', label: 'Điện' },
+  { value: 'water', label: 'Nước' },
+  { value: 'unknown', label: 'Chưa xác định' },
+]
+
+function RequestCategoryBadge({ request }) {
+  if (request.labelStatus === 'calculating') {
+    return <span className="status status--pending">Đang tính…</span>
+  }
+  if (request.category === 'electric') {
+    return <span className="status status--assigned">Điện</span>
+  }
+  if (request.category === 'water') {
+    return <span className="status status--in_progress">Nước</span>
+  }
+  return <span className="status status--failed">Chưa xác định</span>
+}
 
 const categoryLabel = (value) =>
   CATEGORY_OPTIONS.find((option) => option.value === value)?.label || 'Sửa chữa điện'
@@ -91,6 +112,8 @@ export default function Repairman() {
   const [requestsLoading, setRequestsLoading] = useState(true)
   const [requestsError, setRequestsError] = useState('')
   const [busyRequestId, setBusyRequestId] = useState(null)
+  const [requestCategory, setRequestCategory] = useState('all')
+  const loadRequestsRef = useRef(null)
 
   // Đơn dịch vụ
   const [orders, setOrders] = useState([])
@@ -202,6 +225,20 @@ export default function Repairman() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  const hasCalculatingRequests = requests.some(
+    (item) => item.labelStatus === 'calculating',
+  )
+
+  useEffect(() => {
+    loadRequestsRef.current = loadRequests
+  })
+
+  useEffect(() => {
+    if (!hasCalculatingRequests) return undefined
+    const id = setInterval(() => loadRequestsRef.current?.(), 4000)
+    return () => clearInterval(id)
+  }, [hasCalculatingRequests])
+
   const toggleAvailability = async () => {
     const next = !available
     setAvailabilityBusy(true)
@@ -226,6 +263,16 @@ export default function Repairman() {
       setRequestsError(actionError.message)
     } finally {
       setBusyRequestId(null)
+    }
+  }
+
+  const retryRequestLabel = async (id) => {
+    setRequestsError('')
+    try {
+      await mlApi.retryLabel(id)
+      await loadRequests()
+    } catch (retryError) {
+      setRequestsError(retryError.message)
     }
   }
 
@@ -369,9 +416,17 @@ export default function Repairman() {
   }
 
   const uid = user?.uid
-  const visibleRequests = requests.filter(
-    (request) => request.repairmanUid === uid || (!request.repairmanUid && request.status === 'pending'),
-  )
+  const visibleRequests = requests.filter((request) => {
+    const assigned =
+      request.repairmanUid === uid ||
+      (!request.repairmanUid && request.status === 'pending')
+    if (!assigned) return false
+    if (requestCategory === 'all') return true
+    if (requestCategory === 'unknown') {
+      return !request.category || request.category === 'unknown'
+    }
+    return request.category === requestCategory
+  })
   const openRequests = visibleRequests.filter((request) => request.status === 'pending')
   const myRequests = visibleRequests.filter((request) => request.status !== 'pending')
 
@@ -440,6 +495,20 @@ export default function Repairman() {
               </div>
             )}
 
+            <div className="toolbar">
+              <select
+                className="admin-select"
+                value={requestCategory}
+                onChange={(event) => setRequestCategory(event.target.value)}
+              >
+                {REQUEST_CATEGORY_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <section className="card">
               <h2 className="card__title">Việc mới — chờ tiếp nhận ({openRequests.length})</h2>
 
@@ -462,7 +531,10 @@ export default function Repairman() {
                               </div>
                             )}
                           </div>
-                          <StatusBadge status={request.status} />
+                          <div className="admin-actions">
+                            <RequestCategoryBadge request={request} />
+                            <StatusBadge status={request.status} />
+                          </div>
                         </div>
                         <p className="req-item__issue">{request.issue}</p>
                         <p className="req-item__meta">
@@ -482,6 +554,16 @@ export default function Repairman() {
                               {busyRequestId === request.id ? action.busy : action.label}
                             </button>
                           )}
+                          {(request.labelStatus === 'failed' || !request.category) &&
+                            request.labelStatus !== 'calculating' && (
+                              <button
+                                className="btn btn--outline btn--sm"
+                                type="button"
+                                onClick={() => retryRequestLabel(request.id)}
+                              >
+                                Gắn nhãn lại
+                              </button>
+                            )}
                         </div>
                       </li>
                     )
@@ -512,7 +594,10 @@ export default function Repairman() {
                               </div>
                             )}
                           </div>
-                          <StatusBadge status={request.status} />
+                          <div className="admin-actions">
+                            <RequestCategoryBadge request={request} />
+                            <StatusBadge status={request.status} />
+                          </div>
                         </div>
                         <p className="req-item__issue">{request.issue}</p>
                         <p className="req-item__meta">
@@ -531,6 +616,16 @@ export default function Repairman() {
                               {busyRequestId === request.id ? action.busy : action.label}
                             </button>
                           )}
+                          {(request.labelStatus === 'failed' || !request.category) &&
+                            request.labelStatus !== 'calculating' && (
+                              <button
+                                className="btn btn--outline btn--sm"
+                                type="button"
+                                onClick={() => retryRequestLabel(request.id)}
+                              >
+                                Gắn nhãn lại
+                              </button>
+                            )}
                         </div>
                       </li>
                     )

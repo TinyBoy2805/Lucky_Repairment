@@ -56,7 +56,7 @@ if errorlevel 1 (
 echo.
 echo Waiting for the sidecar...
 timeout /t 6 /nobreak >nul
-curl -s http://127.0.0.1:8000/health >nul 2>&1
+curl -s http://127.0.0.1:6767/health >nul 2>&1
 if errorlevel 1 (
     echo Warning: the sidecar is not responding yet.
 ) else (
@@ -67,7 +67,7 @@ echo.
 echo GraphRAG is running:
 echo   Chat       http://127.0.0.1:11434 (GPU)
 echo   Embeddings http://127.0.0.1:11435 (CPU)
-echo   Sidecar    http://127.0.0.1:8000
+echo   Sidecar    http://127.0.0.1:6767
 echo.
 echo Use stop.bat to stop GraphRAG and Ollama.
 pause
